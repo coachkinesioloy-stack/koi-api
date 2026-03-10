@@ -14,23 +14,31 @@ from .r2 import put_json, list_keys, get_json
 
 app = FastAPI(title="KOI Pilot API", version="0.1.0")
 
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def protocol_version() -> str:
     return os.environ.get("KOI_PROTOCOL_VERSION", "KOI-0.1.0")
 
+
 @app.get("/health")
 def health():
-    return {"ok": True, "ts": now_iso(), "protocol_version": protocol_version()}
+    return {
+        "ok": True,
+        "ts": now_iso(),
+        "protocol_version": protocol_version()
+    }
+
 
 @app.post("/session", response_model=CreateSessionResponse)
 def create_session(req: CreateSessionRequest):
     session_id = str(uuid.uuid4())
 
-    # Evento inicial (útil para auditoría)
     event_id = str(uuid.uuid4())
     ts = now_iso()
+
     record = {
         "event_id": event_id,
         "ts": ts,
@@ -44,10 +52,14 @@ def create_session(req: CreateSessionRequest):
         "payload": {},
     }
 
-    key = f"events/{ts[:7]}/{session_id}/{event_id}.json"  # YYYY-MM
+    key = f"events/{ts[:7]}/{session_id}/{event_id}.json"
     put_json(key, record)
 
-    return CreateSessionResponse(session_id=session_id, protocol_version=protocol_version())
+    return CreateSessionResponse(
+        session_id=session_id,
+        protocol_version=protocol_version()
+    )
+
 
 @app.post("/event", response_model=EventRecord)
 def create_event(req: CreateEventRequest):
@@ -72,16 +84,29 @@ def create_event(req: CreateEventRequest):
 
     key = f"events/{ts[:7]}/{req.session_id}/{event_id}.json"
     put_json(key, record)
+
     return record
+
 
 @app.get("/session/{session_id}/events", response_model=List[EventRecord])
 def get_session_events(session_id: str):
-    # Para piloto: listamos todo y filtramos por session_id
     keys = list_keys(prefix="events/")
     session_keys = [k for k in keys if f"/{session_id}/" in k]
-    if not session_keys:
-        return []
 
-    records = [EventRecord(**get_json(k)) for k in session_keys]
+    records = []
+    for k in session_keys:
+        data = get_json(k)
+        if data:
+            records.append(EventRecord(**data))
+
     records.sort(key=lambda r: r.ts)
+
     return records
+
+
+# endpoint de debug para ver qué archivos existen
+@app.get("/debug/keys")
+def debug_keys():
+    return {
+        "keys": list_keys(prefix="events/")
+    }
