@@ -3,21 +3,41 @@ import os
 
 FILE = "events.json"
 
-def put_json(key, data):
+
+def _load_events():
     if not os.path.exists(FILE):
-        with open(FILE, "w") as f:
-            json.dump([], f)
+        return []
 
-    with open(FILE, "r") as f:
-        events = json.load(f)
+    with open(FILE, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return []
 
-    events.append(data)
 
-    with open(FILE, "w") as f:
-        json.dump(events, f)
+def _save_events(events):
+    with open(FILE, "w", encoding="utf-8") as f:
+        json.dump(events, f, ensure_ascii=False, indent=2)
+
+
+def put_json(key, data):
+    events = _load_events()
+    item = {
+        "key": key,
+        "data": data
+    }
+    events.append(item)
+    _save_events(events)
+
 
 def list_keys(prefix):
-    return []
+    events = _load_events()
+    return [item["key"] for item in events if item["key"].startswith(prefix)]
+
 
 def get_json(key):
+    events = _load_events()
+    for item in events:
+        if item["key"] == key:
+            return item["data"]
     return {}
