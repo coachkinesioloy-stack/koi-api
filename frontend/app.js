@@ -1,4 +1,4 @@
-const API_DEFAULT = "https://hanna-api-9rub.onrender.com";
+const API = "https://hanna-api-9rub.onrender.com";
 
 const state = {
   currentView: "dashboard",
@@ -14,12 +14,10 @@ const views = {
   settings: document.getElementById("view-settings"),
 };
 
-const navButtons = [...document.querySelectorAll(".nav-btn")];
-const apiUrlText = document.getElementById("apiUrlText");
-const apiBase = apiUrlText ? null : null;
+const navButtons = [...document.querySelectorAll(".side-link")];
 
 function api() {
-  return API_DEFAULT;
+  return API;
 }
 
 async function getJson(url, options = {}) {
@@ -27,13 +25,11 @@ async function getJson(url, options = {}) {
   return await res.json();
 }
 
-function observeReveal(root = document) {
+function activateReveal(root = document) {
   const items = [...root.querySelectorAll(".reveal, .card, .pulse-center")];
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("in-view");
-      }
+      if (entry.isIntersecting) entry.target.classList.add("in-view");
     });
   }, { threshold: 0.18 });
 
@@ -61,7 +57,7 @@ function setView(view) {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
 
-  if (view === "dashboard") renderDashboardSummary();
+  if (view === "dashboard") renderDashboardData();
   if (view === "patients") renderPatients();
   if (view === "sessions") renderSessions();
   if (view === "checkin") renderCheckin();
@@ -76,7 +72,7 @@ document.getElementById("startSessionBtn")?.addEventListener("click", () => {
   setView("checkin");
 });
 
-async function renderDashboardSummary() {
+async function renderDashboardData() {
   try {
     const data = await getJson(`${api()}/dashboard/summary`);
     const latest = data.latest_checkin?.payload || {};
@@ -84,18 +80,18 @@ async function renderDashboardSummary() {
     const hrv = latest.rmssd_ms ?? 144;
     const score = hrv < 20 ? 42 : hrv <= 50 ? 76 : 90;
 
-    document.getElementById("hrvValue").textContent = hrv;
+    document.getElementById("hrvHeadValue").textContent = hrv;
     document.getElementById("updHrv").textContent = latest.rmssd_ms ? `+${Math.round((latest.rmssd_ms / 18) * 5)}%` : "+5%";
-    document.getElementById("adaptFill").style.width = `${score}%`;
+    document.getElementById("adaptProgress").style.width = `${score}%`;
 
     if (data.latest_checkin?.patient_id) {
-      document.getElementById("sessionPatientName").textContent = data.latest_checkin.patient_id;
+      document.getElementById("sessionNameBox").textContent = data.latest_checkin.patient_id;
     }
   } catch {
-    document.getElementById("adaptFill").style.width = "76%";
+    document.getElementById("adaptProgress").style.width = "76%";
   }
 
-  observeReveal(document);
+  activateReveal(document);
 }
 
 async function renderPatients() {
@@ -146,7 +142,7 @@ async function renderPatients() {
     renderPatients();
   };
 
-  observeReveal(views.patients);
+  activateReveal(views.patients);
 }
 
 async function renderSessions() {
@@ -219,7 +215,7 @@ async function renderSessions() {
     patientSelect.dispatchEvent(new Event("change"));
   };
 
-  observeReveal(views.sessions);
+  activateReveal(views.sessions);
 }
 
 async function renderCheckin() {
@@ -346,10 +342,10 @@ async function renderCheckin() {
 
     document.getElementById("checkin-result").textContent = JSON.stringify(data, null, 2);
     sessionSelect.dispatchEvent(new Event("change"));
-    renderDashboardSummary();
+    renderDashboardData();
   };
 
-  observeReveal(views.checkin);
+  activateReveal(views.checkin);
 }
 
 function renderSettings() {
@@ -359,9 +355,9 @@ function renderSettings() {
       <div class="empty">Sección reservada para parámetros clínicos, IA y visualización.</div>
     </section>
   `;
-  observeReveal(views.settings);
+  activateReveal(views.settings);
 }
 
 setupParallax();
-observeReveal(document);
-renderDashboardSummary();
+activateReveal(document);
+renderDashboardData();
