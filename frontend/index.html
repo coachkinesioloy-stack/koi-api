@@ -7,59 +7,89 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="app-bg">
-    <div class="network"></div>
-    <div class="network network-2"></div>
-    <div class="halo halo-1"></div>
-    <div class="halo halo-2"></div>
+  <div class="bg-layer">
+    <div class="gradient-orb orb-a"></div>
+    <div class="gradient-orb orb-b"></div>
+    <div class="gradient-orb orb-c"></div>
+
+    <svg class="bg-network" viewBox="0 0 1600 900" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="networkGold" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="rgba(224,190,92,0)" />
+          <stop offset="50%" stop-color="rgba(224,190,92,0.22)" />
+          <stop offset="100%" stop-color="rgba(224,190,92,0)" />
+        </linearGradient>
+        <linearGradient id="networkCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="rgba(127,229,230,0)" />
+          <stop offset="50%" stop-color="rgba(127,229,230,0.14)" />
+          <stop offset="100%" stop-color="rgba(127,229,230,0)" />
+        </linearGradient>
+      </defs>
+
+      <path class="net-line net-line-a" d="M0,220 C220,160 380,300 560,230 C760,150 890,290 1080,220 C1280,145 1410,250 1600,200" />
+      <path class="net-line net-line-b" d="M0,520 C220,450 380,590 560,500 C760,400 930,560 1140,500 C1320,450 1450,520 1600,470" />
+      <path class="net-line net-line-c" d="M0,740 C180,700 350,820 580,730 C770,650 940,790 1140,710 C1310,640 1440,730 1600,690" />
+    </svg>
   </div>
 
   <div class="shell">
-    <aside class="sidebar glass">
-      <div class="brand">
-        <div class="brand-pulse">
-          <span></span>
+    <aside class="sidebar glass reveal reveal-left">
+      <div>
+        <div class="brand">
+          <div class="brand-logo-wrap">
+            <img
+              src="./assets/hanna-logo.png"
+              alt="HANNA"
+              class="brand-logo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <div class="brand-logo-fallback" style="display:none;">
+              <span></span>
+            </div>
+          </div>
+
+          <div class="brand-copy">
+            <h1>HANNA</h1>
+            <p>The path of adaptation</p>
+          </div>
         </div>
-        <div class="brand-copy">
-          <h1>HANNA</h1>
-          <p>Pure. Precise.</p>
-        </div>
+
+        <nav class="nav">
+          <button class="nav-btn active" data-view="dashboard">Overview</button>
+          <button class="nav-btn" data-view="patients">Patients</button>
+          <button class="nav-btn" data-view="sessions">Sessions</button>
+          <button class="nav-btn" data-view="checkin">Evaluation</button>
+        </nav>
       </div>
 
-      <nav class="nav">
-        <button class="nav-btn active" data-view="dashboard">Overview</button>
-        <button class="nav-btn" data-view="patients">Patients</button>
-        <button class="nav-btn" data-view="sessions">Sessions</button>
-        <button class="nav-btn" data-view="checkin">Evaluation</button>
-      </nav>
-
       <div class="sidebar-foot">
-        <div class="sidebar-foot-line"></div>
-        <p>Heart-rate · Anatomical · Neuro-immune · Adaptation</p>
+        <div class="sidebar-pulse-line"></div>
+        <p>Heart-rate · Anatomical · Neuro-immune · Evolution</p>
       </div>
     </aside>
 
     <main class="main">
-      <header class="topbar glass">
+      <header class="topbar glass reveal reveal-top">
         <div class="topbar-left">
-          <div class="mini-logo">
-            <span class="mini-logo-line"></span>
+          <div class="topbar-mark">
+            <span class="topbar-mark-line"></span>
           </div>
+
           <div>
-            <div class="eyebrow">System ready</div>
+            <div class="eyebrow">HANNA System</div>
             <h2 id="page-title">Good evening</h2>
-            <p id="page-subtitle">The path of adaptation.</p>
+            <p id="page-subtitle">Pure. Precise. Adaptive.</p>
           </div>
         </div>
 
         <div class="topbar-right">
-          <div class="api-box">
-            <label>API</label>
+          <div class="api-box glass-soft">
+            <label>API BASE</label>
             <input id="apiBase" value="https://hanna-api-9rub.onrender.com" />
           </div>
 
-          <div class="profile-chip glass-soft">
-            <div class="profile-dot"></div>
+          <div class="profile glass-soft">
+            <div class="profile-avatar"></div>
             <div>
               <strong>Licenciado</strong>
               <span>Elite Coaching</span>
@@ -73,9 +103,9 @@
       <section id="view-sessions" class="view"></section>
       <section id="view-checkin" class="view"></section>
 
-      <button id="floating-action" class="floating-action">
+      <button id="floatingAction" class="floating-action">
         <span class="floating-glow"></span>
-        <span>Start Coaching Session</span>
+        <span class="floating-text">Start Coaching Session</span>
       </button>
     </main>
   </div>
