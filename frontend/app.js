@@ -1,23 +1,25 @@
+const API_DEFAULT = "https://hanna-api-9rub.onrender.com";
+
 const state = {
   currentView: "dashboard",
   selectedPatientId: "",
   selectedSessionId: "",
 };
 
-const els = {
-  pageTitle: document.getElementById("page-title"),
-  pageSubtitle: document.getElementById("page-subtitle"),
-  apiBase: document.getElementById("apiBase"),
+const views = {
   dashboard: document.getElementById("view-dashboard"),
   patients: document.getElementById("view-patients"),
   sessions: document.getElementById("view-sessions"),
   checkin: document.getElementById("view-checkin"),
-  navButtons: [...document.querySelectorAll(".nav-btn")],
-  floatingAction: document.getElementById("floating-action"),
+  settings: document.getElementById("view-settings"),
 };
 
+const navButtons = [...document.querySelectorAll(".nav-btn")];
+const apiUrlText = document.getElementById("apiUrlText");
+const apiBase = apiUrlText ? null : null;
+
 function api() {
-  return els.apiBase.value.trim();
+  return API_DEFAULT;
 }
 
 async function getJson(url, options = {}) {
@@ -25,243 +27,109 @@ async function getJson(url, options = {}) {
   return await res.json();
 }
 
-function setActiveView(view) {
+function observeReveal(root = document) {
+  const items = [...root.querySelectorAll(".reveal, .card, .pulse-center")];
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in-view");
+      }
+    });
+  }, { threshold: 0.18 });
+
+  items.forEach((el) => observer.observe(el));
+}
+
+function setupParallax() {
+  const bg = document.getElementById("bgParallax");
+  if (!bg) return;
+
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY * 0.08;
+    bg.style.transform = `translateY(${y}px)`;
+  }, { passive: true });
+}
+
+function setView(view) {
   state.currentView = view;
 
-  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-  document.getElementById(`view-${view}`).classList.add("active");
+  Object.entries(views).forEach(([key, el]) => {
+    el.classList.toggle("active", key === view);
+  });
 
-  els.navButtons.forEach(btn => {
+  navButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
 
-  if (view === "dashboard") {
-    els.pageTitle.textContent = "Good evening";
-    els.pageSubtitle.textContent = "The path of adaptation. Pure. Precise.";
-    renderDashboard();
-  }
-
-  if (view === "patients") {
-    els.pageTitle.textContent = "Patients";
-    els.pageSubtitle.textContent = "Curated elite registry.";
-    renderPatients();
-  }
-
-  if (view === "sessions") {
-    els.pageTitle.textContent = "Sessions";
-    els.pageSubtitle.textContent = "Operational flow with calm precision.";
-    renderSessions();
-  }
-
-  if (view === "checkin") {
-    els.pageTitle.textContent = "Evaluation M1";
-    els.pageSubtitle.textContent = "Autonomic adaptation capture.";
-    renderCheckin();
-  }
+  if (view === "dashboard") renderDashboardSummary();
+  if (view === "patients") renderPatients();
+  if (view === "sessions") renderSessions();
+  if (view === "checkin") renderCheckin();
+  if (view === "settings") renderSettings();
 }
 
-els.navButtons.forEach(btn => {
-  btn.addEventListener("click", () => setActiveView(btn.dataset.view));
+navButtons.forEach((btn) => {
+  btn.addEventListener("click", () => setView(btn.dataset.view));
 });
 
-els.floatingAction.addEventListener("click", () => {
-  setActiveView("checkin");
+document.getElementById("startSessionBtn")?.addEventListener("click", () => {
+  setView("checkin");
 });
 
-function computeAdaptation(summary) {
-  const latest = summary.latest_checkin;
-  if (!latest || !latest.payload) {
-    return { score: 68, state: "Awaiting Data" };
+async function renderDashboardSummary() {
+  try {
+    const data = await getJson(`${api()}/dashboard/summary`);
+    const latest = data.latest_checkin?.payload || {};
+
+    const hrv = latest.rmssd_ms ?? 144;
+    const score = hrv < 20 ? 42 : hrv <= 50 ? 76 : 90;
+
+    document.getElementById("hrvValue").textContent = hrv;
+    document.getElementById("updHrv").textContent = latest.rmssd_ms ? `+${Math.round((latest.rmssd_ms / 18) * 5)}%` : "+5%";
+    document.getElementById("adaptFill").style.width = `${score}%`;
+
+    if (data.latest_checkin?.patient_id) {
+      document.getElementById("sessionPatientName").textContent = data.latest_checkin.patient_id;
+    }
+  } catch {
+    document.getElementById("adaptFill").style.width = "76%";
   }
 
-  const rmssd = Number(latest.payload.rmssd_ms || 0);
-  if (rmssd < 20) return { score: 42, state: "Simpaticotonia" };
-  if (rmssd <= 50) return { score: 76, state: "Equilibrio" };
-  return { score: 90, state: "Vagotonia" };
-}
-
-function ringSvg(score) {
-  const radius = 92;
-  const circumference = 2 * Math.PI * radius;
-  const progress = circumference - (score / 100) * circumference;
-
-  return `
-    <svg class="ring-svg" viewBox="0 0 240 240">
-      <defs>
-        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#fff5cf"></stop>
-          <stop offset="50%" stop-color="#d4af37"></stop>
-          <stop offset="100%" stop-color="#bd8a10"></stop>
-        </linearGradient>
-      </defs>
-      <circle class="ring-track" cx="120" cy="120" r="${radius}"></circle>
-      <circle
-        class="ring-progress"
-        cx="120"
-        cy="120"
-        r="${radius}"
-        stroke-dasharray="${circumference}"
-        stroke-dashoffset="${progress}"
-      ></circle>
-    </svg>
-  `;
-}
-
-function pulseSvg() {
-  return `
-    <svg class="signal-svg" viewBox="0 0 420 110" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="pulseGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="rgba(212,175,55,0.05)"></stop>
-          <stop offset="20%" stop-color="#fff3c1"></stop>
-          <stop offset="55%" stop-color="#d4af37"></stop>
-          <stop offset="100%" stop-color="rgba(212,175,55,0.08)"></stop>
-        </linearGradient>
-      </defs>
-      <path
-        class="signal-path"
-        d="M0,60 L80,60 L110,60 L135,60 L156,60 L172,38 L183,74 L196,20 L210,86 L224,60 L254,60 L278,60 L296,34 L316,75 L336,60 L420,60"
-      ></path>
-    </svg>
-  `;
-}
-
-async function renderDashboard() {
-  const data = await getJson(`${api()}/dashboard/summary`);
-  const adaptation = computeAdaptation(data);
-
-  els.dashboard.innerHTML = `
-    <div class="grid-hero">
-      <div class="card adaptation-card">
-        <div class="adaptation-wrap">
-          <div class="ring-wrap">
-            ${ringSvg(adaptation.score)}
-            <div class="ring-center">
-              <strong>${adaptation.score}%</strong>
-              <span>Adaptation</span>
-            </div>
-          </div>
-
-          <div class="adaptation-copy">
-            <span class="eyebrow">Adaptation path</span>
-            <h3 class="big-state">${adaptation.state}</h3>
-            <p>
-              HANNA condenses heart-rate, neuro-immune tone and anatomical tracking into one clean state layer.
-              Each signal should feel like visual gold.
-            </p>
-            <div class="signal-line">
-              ${pulseSvg()}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Current Signal</h3>
-        ${
-          data.latest_checkin
-            ? `
-              <div class="subtle-pill">${data.latest_checkin.payload.sna_state || "No state"}</div>
-
-              <div style="margin-top:18px;">
-                <div class="card-value">${data.latest_checkin.payload.hr_bpm || "--"} <span class="muted">bpm</span></div>
-                <div class="card-label">Heart-rate</div>
-              </div>
-
-              <div style="margin-top:16px;">
-                <div class="card-value">${data.latest_checkin.payload.rmssd_ms || "--"} <span class="muted">ms</span></div>
-                <div class="card-label">HRV</div>
-              </div>
-
-              <div class="timeline">
-                <span></span>
-                <span class="active"></span>
-                <span class="active"></span>
-                <span></span>
-                <span></span>
-              </div>
-            `
-            : `<p class="empty">No adaptation data yet.</p>`
-        }
-      </div>
-    </div>
-
-    <div class="grid-4">
-      <div class="card">
-        <h3>Anatomical</h3>
-        <div class="card-value">${data.sessions_count}</div>
-        <div class="card-label">Registered sessions</div>
-        <div class="muted">Body structure and functional pathway.</div>
-      </div>
-
-      <div class="card">
-        <h3>Neuro-immune</h3>
-        <div class="card-value">${data.checkins_count}</div>
-        <div class="card-label">Captured check-ins</div>
-        <div class="neuro-flow"></div>
-      </div>
-
-      <div class="card">
-        <h3>Heart-rate</h3>
-        <div class="signal-line" style="margin-bottom:14px;">${pulseSvg()}</div>
-        <div class="muted">Pulse signature with subtle medical cyan.</div>
-      </div>
-
-      <div class="card">
-        <h3>Evolution</h3>
-        <div class="card-value">${data.patients_count}</div>
-        <div class="card-label">Active patients</div>
-        <div class="timeline">
-          <span class="active"></span>
-          <span class="active"></span>
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
-    </div>
-  `;
+  observeReveal(document);
 }
 
 async function renderPatients() {
   const patients = await getJson(`${api()}/patients`);
 
-  els.patients.innerHTML = `
-    <div class="grid-hero">
-      <div class="card">
-        <h3>New Patient</h3>
-
-        <div class="form-grid-2">
-          <div style="grid-column: 1 / -1;">
-            <label class="muted">Full name</label>
-            <input id="patient-name" placeholder="Ej: Juan Pérez" />
-          </div>
-        </div>
-
+  views.patients.innerHTML = `
+    <div class="simple-grid">
+      <section class="view-panel reveal">
+        <h3>Nuevo paciente</h3>
+        <label>Nombre</label>
+        <input id="patient-name" placeholder="Ej: Juan Pérez" />
         <div class="form-actions">
-          <button class="btn btn-primary" id="save-patient-btn">Save patient</button>
+          <button class="small-btn" id="save-patient-btn">Guardar paciente</button>
         </div>
-
         <div class="result-box">
-          <pre id="patient-result">Waiting input...</pre>
+          <pre id="patient-result">Esperando datos...</pre>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <h3>Registry</h3>
-        <div class="list">
+      <section class="view-panel reveal">
+        <h3>Pacientes registrados</h3>
+        <div class="simple-list">
           ${
             patients.length
               ? patients.map(p => `
-                <div class="list-item">
-                  <strong>${p.name}</strong>
-                  <div class="muted">${p.patient_id}</div>
+                <div class="simple-item">
+                  <strong>${p.name}</strong><br>
+                  <span class="muted">${p.patient_id}</span>
                 </div>
               `).join("")
-              : `<p class="empty">No patients yet.</p>`
+              : `<div class="empty">No hay pacientes.</div>`
           }
         </div>
-      </div>
+      </section>
     </div>
   `;
 
@@ -277,37 +145,38 @@ async function renderPatients() {
     state.selectedPatientId = data.patient_id;
     renderPatients();
   };
+
+  observeReveal(views.patients);
 }
 
 async function renderSessions() {
   const patients = await getJson(`${api()}/patients`);
 
-  els.sessions.innerHTML = `
-    <div class="grid-hero">
-      <div class="card">
-        <h3>Create Session</h3>
-
-        <label class="muted">Patient</label>
+  views.sessions.innerHTML = `
+    <div class="simple-grid">
+      <section class="view-panel reveal">
+        <h3>Crear sesión</h3>
+        <label>Paciente</label>
         <select id="session-patient-select">
-          <option value="">Select patient</option>
+          <option value="">Seleccionar paciente</option>
           ${patients.map(p => `<option value="${p.patient_id}">${p.name} — ${p.patient_id}</option>`).join("")}
         </select>
 
         <div class="form-actions">
-          <button class="btn btn-primary" id="create-session-btn">Create session</button>
+          <button class="small-btn" id="create-session-btn">Crear sesión</button>
         </div>
 
         <div class="result-box">
-          <pre id="session-result">Waiting action...</pre>
+          <pre id="session-result">Esperando acción...</pre>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <h3>Session Log</h3>
-        <div id="sessions-list" class="list">
-          <p class="empty">Select a patient to load sessions.</p>
+      <section class="view-panel reveal">
+        <h3>Sesiones del paciente</h3>
+        <div id="sessions-list" class="simple-list">
+          <div class="empty">Seleccioná un paciente.</div>
         </div>
-      </div>
+      </section>
     </div>
   `;
 
@@ -319,20 +188,19 @@ async function renderSessions() {
     state.selectedPatientId = patientId;
 
     if (!patientId) {
-      sessionsList.innerHTML = `<p class="empty">Select a patient to load sessions.</p>`;
+      sessionsList.innerHTML = `<div class="empty">Seleccioná un paciente.</div>`;
       return;
     }
 
     const sessions = await getJson(`${api()}/patient/${patientId}/sessions`);
-
     sessionsList.innerHTML = sessions.length
       ? sessions.map(s => `
-        <div class="list-item">
-          <strong>${s.session_id}</strong>
-          <div class="muted">${s.ts}</div>
+        <div class="simple-item">
+          <strong>${s.session_id}</strong><br>
+          <span class="muted">${s.ts}</span>
         </div>
       `).join("")
-      : `<p class="empty">No sessions for this patient.</p>`;
+      : `<div class="empty">No hay sesiones.</div>`;
   };
 
   document.getElementById("create-session-btn").onclick = async () => {
@@ -350,69 +218,62 @@ async function renderSessions() {
     state.selectedSessionId = data.session_id;
     patientSelect.dispatchEvent(new Event("change"));
   };
+
+  observeReveal(views.sessions);
 }
 
 async function renderCheckin() {
   const patients = await getJson(`${api()}/patients`);
 
-  els.checkin.innerHTML = `
-    <div class="grid-hero">
-      <div class="card">
-        <h3>M1 — Biometric Check-in</h3>
+  views.checkin.innerHTML = `
+    <div class="simple-grid">
+      <section class="view-panel reveal">
+        <h3>M1 · Check-in biométrico</h3>
 
-        <label class="muted">Patient</label>
+        <label>Paciente</label>
         <select id="checkin-patient-select">
-          <option value="">Select patient</option>
+          <option value="">Seleccionar paciente</option>
           ${patients.map(p => `<option value="${p.patient_id}">${p.name} — ${p.patient_id}</option>`).join("")}
         </select>
 
-        <label class="muted" style="display:block; margin-top:12px;">Session</label>
+        <label style="margin-top:12px;">Sesión</label>
         <select id="checkin-session-select">
-          <option value="">Select session</option>
+          <option value="">Seleccionar sesión</option>
         </select>
 
-        <div class="form-grid-3" style="margin-top:16px;">
-          <div>
-            <label class="muted">RMSSD</label>
-            <input id="rmssd_ms" value="18.4" />
-          </div>
-          <div>
-            <label class="muted">HR BPM</label>
-            <input id="hr_bpm" value="82" />
-          </div>
-          <div>
-            <label class="muted">RR RPM</label>
-            <input id="rr_rpm" value="14" />
-          </div>
-          <div>
-            <label class="muted">SQI</label>
-            <input id="sqi" value="0.91" />
-          </div>
-          <div>
-            <label class="muted">EVA</label>
-            <input id="eva" value="5" />
-          </div>
-          <div>
-            <label class="muted">Energy</label>
-            <input id="energy" value="6" />
-          </div>
-        </div>
+        <label style="margin-top:12px;">RMSSD</label>
+        <input id="rmssd_ms" value="18.4" />
+
+        <label style="margin-top:12px;">HR BPM</label>
+        <input id="hr_bpm" value="82" />
+
+        <label style="margin-top:12px;">RR RPM</label>
+        <input id="rr_rpm" value="14" />
+
+        <label style="margin-top:12px;">SQI</label>
+        <input id="sqi" value="0.91" />
+
+        <label style="margin-top:12px;">EVA</label>
+        <input id="eva" value="5" />
+
+        <label style="margin-top:12px;">Energy</label>
+        <input id="energy" value="6" />
 
         <div class="form-actions">
-          <button class="btn btn-primary" id="save-checkin-btn">Save check-in</button>
+          <button class="small-btn" id="save-checkin-btn">Guardar check-in</button>
         </div>
 
         <div class="result-box">
-          <pre id="checkin-result">Waiting action...</pre>
+          <pre id="checkin-result">Esperando acción...</pre>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <h3>Session Events</h3>
-        <div id="checkin-events-list" class="list">
-          <p class="empty">Select session to view events.</p>
+      <section class="view-panel reveal">
+        <h3>Eventos de la sesión</h3>
+        <div id="checkin-events-list" class="simple-list">
+          <div class="empty">Seleccioná una sesión.</div>
         </div>
-      </div>
+      </section>
     </div>
   `;
 
@@ -423,13 +284,13 @@ async function renderCheckin() {
   patientSelect.onchange = async () => {
     const patientId = patientSelect.value;
     state.selectedPatientId = patientId;
-    sessionSelect.innerHTML = `<option value="">Select session</option>`;
+    sessionSelect.innerHTML = `<option value="">Seleccionar sesión</option>`;
 
     if (!patientId) return;
 
     const sessions = await getJson(`${api()}/patient/${patientId}/sessions`);
     sessionSelect.innerHTML = `
-      <option value="">Select session</option>
+      <option value="">Seleccionar sesión</option>
       ${sessions.map(s => `<option value="${s.session_id}">${s.session_id}</option>`).join("")}
     `;
   };
@@ -439,21 +300,20 @@ async function renderCheckin() {
     state.selectedSessionId = sessionId;
 
     if (!sessionId) {
-      eventsList.innerHTML = `<p class="empty">Select session to view events.</p>`;
+      eventsList.innerHTML = `<div class="empty">Seleccioná una sesión.</div>`;
       return;
     }
 
     const events = await getJson(`${api()}/session/${sessionId}/events`);
-
     eventsList.innerHTML = events.length
       ? events.map(e => `
-        <div class="list-item">
-          <strong>${e.type}</strong>
-          <div class="muted">${e.ts}</div>
+        <div class="simple-item">
+          <strong>${e.type}</strong><br>
+          <span class="muted">${e.ts}</span>
           <pre>${JSON.stringify(e.payload, null, 2)}</pre>
         </div>
       `).join("")
-      : `<p class="empty">No events in this session.</p>`;
+      : `<div class="empty">No hay eventos.</div>`;
   };
 
   document.getElementById("save-checkin-btn").onclick = async () => {
@@ -486,7 +346,22 @@ async function renderCheckin() {
 
     document.getElementById("checkin-result").textContent = JSON.stringify(data, null, 2);
     sessionSelect.dispatchEvent(new Event("change"));
+    renderDashboardSummary();
   };
+
+  observeReveal(views.checkin);
 }
 
-setActiveView("dashboard");
+function renderSettings() {
+  views.settings.innerHTML = `
+    <section class="view-panel reveal">
+      <h3>Configuración</h3>
+      <div class="empty">Sección reservada para parámetros clínicos, IA y visualización.</div>
+    </section>
+  `;
+  observeReveal(views.settings);
+}
+
+setupParallax();
+observeReveal(document);
+renderDashboardSummary();
