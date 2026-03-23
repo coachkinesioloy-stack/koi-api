@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HANNA</title>
+  <title>HANNA Coach</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -41,7 +41,7 @@
           <img src="./assets/logo.png" alt="HANNA" class="brand-logo" />
           <div class="brand-copy">
             <h1>HANNA</h1>
-            <p>The Path of Adaptation</p>
+            <p>Coach Platform</p>
           </div>
         </div>
 
@@ -50,6 +50,11 @@
           <button class="side-link" data-view="patients">PACIENTES</button>
           <button class="side-link" data-view="sessions">SESIONES</button>
           <button class="side-link" data-view="checkin">EVALUACIONES</button>
+          <button class="side-link" data-view="planning">PLANIFICACIÓN</button>
+          <button class="side-link" data-view="library">BIBLIOTECA</button>
+          <button class="side-link" data-view="community">COMUNIDAD</button>
+          <button class="side-link" data-view="tips">TIPS</button>
+          <button class="side-link" data-view="live">SESIÓN EN VIVO</button>
           <button class="side-link" data-view="settings">CONFIGURACIÓN</button>
         </nav>
       </div>
@@ -61,163 +66,39 @@
     </aside>
 
     <main class="main">
-      <section id="view-dashboard" class="view active">
-        <div class="dashboard">
-          <section class="card welcome reveal">
-            <div class="welcome-copy">
-              <div class="overline">HANNA SYSTEM,</div>
-              <h2>BIENVENIDA, <span>[NOMBRE]</span></h2>
-              <p>Sigue tu Camino a la Adaptación.</p>
-            </div>
-          </section>
-
-          <section class="card api reveal">
-            <h3>ESTADO DEL SISTEMA HANNA</h3>
-
-            <div class="pulse-box">
-              <svg viewBox="0 0 280 68" preserveAspectRatio="none" class="pulse-svg">
-                <defs>
-                  <linearGradient id="pulseGold" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="rgba(212,175,55,0.05)"/>
-                    <stop offset="25%" stop-color="#f5df9e"/>
-                    <stop offset="60%" stop-color="#d4af37"/>
-                    <stop offset="100%" stop-color="rgba(212,175,55,0.05)"/>
-                  </linearGradient>
-                </defs>
-                <path class="pulse-path" d="M0,34 L60,34 L84,34 L98,18 L110,52 L124,8 L138,60 L152,34 L182,34 L204,34 L218,18 L232,50 L246,34 L280,34"></path>
-              </svg>
-            </div>
-
-            <div class="api-status">
-              <span class="badge ok"><i></i> API ACTIVA</span>
-            </div>
-
-            <div class="api-url" id="apiUrlLabel">https://hanna-api-9rub.onrender.com</div>
-          </section>
-
-          <section class="card profile reveal">
-            <div class="profile-head">
-              <img src="./assets/avatar.jpg" alt="Perfil" class="avatar" />
-              <div>
-                <div class="profile-toptext">BIENVENIDA,</div>
-                <div class="profile-name">LICENCIADA</div>
-              </div>
-              <div class="profile-spark"></div>
-            </div>
-
-            <div class="profile-box">
-              <div class="profile-dot"></div>
-              <div>
-                <strong>Licenciado</strong>
-                <span>Elite coaching</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="card mosaic reveal">
-            <div class="mosaic-pattern"></div>
-
-            <div class="mosaic-left">
-              <div class="shot tall"><img src="./assets/m1.jpg" alt=""></div>
-              <div class="shot"><img src="./assets/m2.jpg" alt=""></div>
-              <div class="shot"><img src="./assets/m3.jpg" alt=""></div>
-              <div class="shot"><img src="./assets/m4.jpg" alt=""></div>
-            </div>
-
-            <div class="mosaic-center">
-              <div class="hero-shot"><img src="./assets/hero.jpg" alt=""></div>
-
-              <div class="data-chip chip-a">Cámara analítica N/A<br>Fuerza: N/A<br>Postura: 9%</div>
-
-              <div class="knee-figure">
-                <div class="bone upper"></div>
-                <div class="bone lower"></div>
-                <div class="joint"></div>
-              </div>
-
-              <div class="data-chip chip-b">Ángulo de Rodilla: 95° +/-2°<br>Fuerza Muscular: N/A<br>Postura: Optimizada</div>
-              <div class="data-chip chip-c">Ángulo de Rodilla: 95°<br>Fuerza Muscular: N/A<br>Postura: N/A</div>
-            </div>
-
-            <div class="mosaic-right">
-              <div class="ai-network"></div>
-              <div class="ai-label">ANÁLISIS DE IA EN TIEMPO REAL</div>
-            </div>
-          </section>
-
-          <section class="card session reveal">
-            <h3>SESIÓN EN CURSO</h3>
-            <div class="session-name" id="sessionNameBox">CARLOS M.</div>
-            <div class="muted">CONTADOR:</div>
-            <div class="session-time">00:05:00</div>
-          </section>
-
-          <section class="card hrv reveal">
-            <div class="hrv-head">
-              <h3>VFC (HRV)</h3>
-              <div class="hrv-value"><span id="hrvHeadValue">144</span> / <em>HRV</em></div>
-            </div>
-
-            <svg class="hrv-chart" viewBox="0 0 390 220" preserveAspectRatio="none">
-              <g class="chart-grid">
-                <line x1="36" y1="180" x2="350" y2="180"></line>
-                <line x1="36" y1="145" x2="350" y2="145"></line>
-                <line x1="36" y1="110" x2="350" y2="110"></line>
-                <line x1="36" y1="75" x2="350" y2="75"></line>
-                <line x1="36" y1="40" x2="350" y2="40"></line>
-                <line x1="36" y1="30" x2="36" y2="180"></line>
-              </g>
-
-              <path class="chart-line gold-line" d="M36,112 C56,92 76,128 96,105 C116,88 136,154 156,116 C176,80 196,122 216,98 C236,106 256,124 276,90 C296,84 316,110 334,96 C344,92 348,94 350,95"></path>
-              <path class="chart-line cyan-line" d="M36,102 C58,116 78,94 98,110 C118,128 138,98 158,106 C178,114 198,94 218,116 C238,134 258,108 278,120 C298,132 318,92 336,108 C344,112 348,114 350,110"></path>
-
-              <line class="chart-marker" x1="300" y1="28" x2="300" y2="180"></line>
-              <text x="276" y="22" class="chart-float">153.5</text>
-
-              <text x="12" y="182" class="chart-label">80</text>
-              <text x="10" y="147" class="chart-label">95</text>
-              <text x="4" y="112" class="chart-label">110</text>
-              <text x="0" y="77" class="chart-label">125</text>
-              <text x="0" y="42" class="chart-label">135</text>
-
-              <text x="38" y="204" class="chart-label">02:00</text>
-              <text x="120" y="204" class="chart-label">13:00</text>
-              <text x="202" y="204" class="chart-label">13:30</text>
-              <text x="280" y="204" class="chart-label">14:00</text>
-            </svg>
-          </section>
-
-          <section class="card adaptation reveal">
-            <h3>ADAPTACIÓN TOTAL</h3>
-            <div class="adapt-wrap">
-              <div class="adapt-track">
-                <div class="adapt-progress" id="adaptProgress"></div>
-              </div>
-              <div class="adapt-star">✦</div>
-            </div>
-          </section>
-
-          <section class="card updates reveal">
-            <h3>ULTIMA ACTUALIZACIÓN CLÍNICA</h3>
-            <ul class="updates-list">
-              <li>HRV (VFC): <span class="good" id="updHrv">+5%</span></li>
-              <li>ANATOMÍA: <span class="good">92% OPT.</span></li>
-              <li>ANATOMÍA: <span class="good">88% OPT.</span></li>
-              <li>NEUROMÍA: <span class="cyan">52% OPT.</span></li>
-              <li>AR[PVRIA]: <span class="good">+1%</span></li>
-            </ul>
-          </section>
-
-          <section class="bottom-actions glass reveal">
-            <button class="cta primary pulse-center" id="startSessionBtn">INICIAR SESIÓN DE COACHING</button>
-            <button class="cta secondary pulse-center">REVISAR HISTORIAL CLÍNICO</button>
-          </section>
+      <header class="top-header glass reveal">
+        <div class="top-left">
+          <div class="header-eyebrow">HANNA COACH</div>
+          <h2 id="pageTitle">Dashboard clínico</h2>
+          <p id="pageSubtitle">Control integral del sistema.</p>
         </div>
-      </section>
 
+        <div class="top-right">
+          <div class="active-patient-box glass-soft">
+            <div class="active-label">Paciente activo</div>
+            <div class="active-name" id="activePatientName">Sin seleccionar</div>
+            <div class="active-meta" id="activePatientMeta">Seleccioná un paciente para trabajar.</div>
+          </div>
+
+          <div class="mini-status glass-soft">
+            <span class="status-dot"></span>
+            <div>
+              <strong>Sistema operativo</strong>
+              <span>API conectada</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active"></section>
       <section id="view-patients" class="view"></section>
       <section id="view-sessions" class="view"></section>
       <section id="view-checkin" class="view"></section>
+      <section id="view-planning" class="view"></section>
+      <section id="view-library" class="view"></section>
+      <section id="view-community" class="view"></section>
+      <section id="view-tips" class="view"></section>
+      <section id="view-live" class="view"></section>
       <section id="view-settings" class="view"></section>
     </main>
   </div>
