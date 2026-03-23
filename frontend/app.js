@@ -5,14 +5,15 @@ const state = {
 };
 
 const els = {
-  title: document.getElementById("view-title"),
-  subtitle: document.getElementById("view-subtitle"),
+  pageTitle: document.getElementById("page-title"),
+  pageSubtitle: document.getElementById("page-subtitle"),
   apiBase: document.getElementById("apiBase"),
   dashboard: document.getElementById("view-dashboard"),
   patients: document.getElementById("view-patients"),
   sessions: document.getElementById("view-sessions"),
   checkin: document.getElementById("view-checkin"),
-  navLinks: [...document.querySelectorAll(".nav-link")],
+  navButtons: [...document.querySelectorAll(".nav-btn")],
+  floatingAction: document.getElementById("floating-action"),
 };
 
 function api() {
@@ -24,97 +25,197 @@ async function getJson(url, options = {}) {
   return await res.json();
 }
 
-function setView(view) {
+function setActiveView(view) {
   state.currentView = view;
 
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.getElementById(`view-${view}`).classList.add("active");
 
-  els.navLinks.forEach(btn => {
+  els.navButtons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
 
   if (view === "dashboard") {
-    els.title.textContent = "Dashboard";
-    els.subtitle.textContent = "Resumen operativo de HANNA";
+    els.pageTitle.textContent = "Good evening";
+    els.pageSubtitle.textContent = "The path of adaptation.";
     renderDashboard();
   }
 
   if (view === "patients") {
-    els.title.textContent = "Pacientes";
-    els.subtitle.textContent = "Alta y listado de pacientes";
+    els.pageTitle.textContent = "Patients";
+    els.pageSubtitle.textContent = "Curated clinical registry.";
     renderPatients();
   }
 
   if (view === "sessions") {
-    els.title.textContent = "Sesiones";
-    els.subtitle.textContent = "Creación y consulta de sesiones";
+    els.pageTitle.textContent = "Sessions";
+    els.pageSubtitle.textContent = "Precise operational flow.";
     renderSessions();
   }
 
   if (view === "checkin") {
-    els.title.textContent = "Evaluación M1";
-    els.subtitle.textContent = "Check-in biométrico inicial";
+    els.pageTitle.textContent = "Evaluation M1";
+    els.pageSubtitle.textContent = "Autonomic state capture.";
     renderCheckin();
   }
 }
 
-els.navLinks.forEach(btn => {
-  btn.addEventListener("click", () => setView(btn.dataset.view));
+els.navButtons.forEach(btn => {
+  btn.addEventListener("click", () => setActiveView(btn.dataset.view));
 });
+
+els.floatingAction.addEventListener("click", () => {
+  setActiveView("checkin");
+});
+
+function computeAdaptation(summary) {
+  const latest = summary.latest_checkin;
+  if (!latest || !latest.payload) {
+    return { score: 64, state: "Awaiting Data" };
+  }
+
+  const rmssd = Number(latest.payload.rmssd_ms || 0);
+  if (rmssd < 20) return { score: 42, state: "Simpaticotonia" };
+  if (rmssd <= 50) return { score: 76, state: "Equilibrio" };
+  return { score: 88, state: "Vagotonia" };
+}
+
+function ringSvg(score) {
+  const radius = 92;
+  const circumference = 2 * Math.PI * radius;
+  const progress = circumference - (score / 100) * circumference;
+
+  return `
+    <svg class="ring-svg" viewBox="0 0 240 240">
+      <defs>
+        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fff0bf"></stop>
+          <stop offset="50%" stop-color="#d4af37"></stop>
+          <stop offset="100%" stop-color="#b98209"></stop>
+        </linearGradient>
+      </defs>
+      <circle class="ring-track" cx="120" cy="120" r="${radius}"></circle>
+      <circle
+        class="ring-progress"
+        cx="120"
+        cy="120"
+        r="${radius}"
+        stroke-dasharray="${circumference}"
+        stroke-dashoffset="${progress}"
+      ></circle>
+    </svg>
+  `;
+}
+
+function pulseSvg() {
+  return `
+    <svg class="signal-svg" viewBox="0 0 420 110" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="pulseGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="rgba(212,175,55,0.15)"></stop>
+          <stop offset="20%" stop-color="#f7dea1"></stop>
+          <stop offset="55%" stop-color="#d4af37"></stop>
+          <stop offset="100%" stop-color="rgba(212,175,55,0.08)"></stop>
+        </linearGradient>
+      </defs>
+      <path
+        class="signal-path"
+        d="M0,58 L85,58 L110,58 L126,58 L145,58 L162,35 L174,70 L186,18 L200,86 L212,58 L238,58 L258,58 L276,34 L295,74 L313,58 L420,58"
+      ></path>
+    </svg>
+  `;
+}
 
 async function renderDashboard() {
   const data = await getJson(`${api()}/dashboard/summary`);
+  const adaptation = computeAdaptation(data);
 
   els.dashboard.innerHTML = `
-    <div class="grid-3">
-      <div class="card">
-        <div class="section-title">Pacientes</div>
-        <div class="metric">${data.patients_count}</div>
-        <div class="metric-sub">Pacientes cargados</div>
+    <div class="grid-hero">
+      <div class="card adaptation-card">
+        <div class="adaptation-wrap">
+          <div class="ring-wrap">
+            ${ringSvg(adaptation.score)}
+            <div class="ring-center">
+              <strong>${adaptation.score}%</strong>
+              <span>Adaptation</span>
+            </div>
+          </div>
+
+          <div class="adaptation-copy">
+            <div class="eyebrow">Adaptation Path</div>
+            <h3 class="big-state">${adaptation.state}</h3>
+            <p>
+              HANNA condenses autonomic, anatomical and evolutionary signals into a quiet decision layer.
+              Every metric should feel rare, useful and precise.
+            </p>
+            <div class="signal-line">
+              ${pulseSvg()}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="section-title">Sesiones</div>
-        <div class="metric">${data.sessions_count}</div>
-        <div class="metric-sub">Sesiones registradas</div>
-      </div>
-
-      <div class="card">
-        <div class="section-title">Check-ins M1</div>
-        <div class="metric">${data.checkins_count}</div>
-        <div class="metric-sub">Evaluaciones biométricas</div>
-      </div>
-    </div>
-
-    <div class="grid-2" style="margin-top:18px;">
-      <div class="card">
-        <h3>Último check-in</h3>
+        <h3>Current Signal</h3>
         ${
           data.latest_checkin
             ? `
-            <div class="badge">${data.latest_checkin.payload.sna_state || "Sin estado"}</div>
-            <pre>${JSON.stringify(data.latest_checkin, null, 2)}</pre>
-          `
-            : `<p class="muted">Todavía no hay check-ins cargados.</p>`
+              <div class="subtle-pill">${data.latest_checkin.payload.sna_state || "No state"}</div>
+              <div style="margin-top:18px;">
+                <div class="card-value">${data.latest_checkin.payload.hr_bpm || "--"} <span class="muted">bpm</span></div>
+                <div class="card-label">Heart-rate</div>
+              </div>
+              <div style="margin-top:16px;">
+                <div class="card-value">${data.latest_checkin.payload.rmssd_ms || "--"} <span class="muted">ms</span></div>
+                <div class="card-label">Heart-rate variability</div>
+              </div>
+              <div class="timeline">
+                <span></span>
+                <span class="active"></span>
+                <span class="active"></span>
+                <span></span>
+                <span></span>
+              </div>
+            `
+            : `
+              <p class="empty">No adaptation data yet.</p>
+            `
         }
+      </div>
+    </div>
+
+    <div class="grid-4">
+      <div class="card">
+        <h3>Anatomical</h3>
+        <div class="card-value">${data.sessions_count}</div>
+        <div class="card-label">Registered sessions</div>
+        <div class="muted">Spatial and structural follow-up.</div>
       </div>
 
       <div class="card">
-        <h3>Estado de trabajo</h3>
-        <div class="list">
-          <div class="list-item">
-            <strong>Backend conectado</strong>
-            <span class="muted">Pacientes, sesiones y eventos operativos.</span>
-          </div>
-          <div class="list-item">
-            <strong>Evaluación M1 activa</strong>
-            <span class="muted">RMSSD, HR, RR, SQI, dolor y energía.</span>
-          </div>
-          <div class="list-item">
-            <strong>Siguiente paso</strong>
-            <span class="muted">Profundizar M1 y luego pasar a M2.</span>
-          </div>
+        <h3>Neuro-immune</h3>
+        <div class="card-value">${data.checkins_count}</div>
+        <div class="card-label">Captured check-ins</div>
+        <div class="neuro-lines"></div>
+      </div>
+
+      <div class="card">
+        <h3>Heart-rate</h3>
+        <div class="signal-line" style="margin-bottom:14px;">${pulseSvg()}</div>
+        <div class="muted">Pulse signature and variability tone.</div>
+      </div>
+
+      <div class="card">
+        <h3>Evolution</h3>
+        <div class="card-value">${data.patients_count}</div>
+        <div class="card-label">Active patients</div>
+        <div class="timeline">
+          <span class="active"></span>
+          <span class="active"></span>
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
       </div>
     </div>
@@ -125,42 +226,44 @@ async function renderPatients() {
   const patients = await getJson(`${api()}/patients`);
 
   els.patients.innerHTML = `
-    <div class="grid-2">
+    <div class="grid-hero">
       <div class="card">
-        <h3>Nuevo paciente</h3>
-        <div class="form-grid">
-          <div style="grid-column:1 / -1;">
-            <label class="muted">Nombre</label>
+        <h3>New Patient</h3>
+        <div class="form-grid-2">
+          <div style="grid-column: 1 / -1;">
+            <label class="muted">Full name</label>
             <input id="patient-name" placeholder="Ej: Juan Pérez" />
           </div>
         </div>
 
         <div class="form-actions">
-          <button class="btn btn-primary" id="create-patient-btn">Guardar paciente</button>
+          <button class="btn btn-primary" id="save-patient-btn">Save patient</button>
         </div>
 
-        <pre id="patient-create-result"></pre>
+        <div class="result-box">
+          <pre id="patient-result">Waiting input...</pre>
+        </div>
       </div>
 
       <div class="card">
-        <h3>Listado</h3>
+        <h3>Registry</h3>
         <div class="list">
           ${
             patients.length
               ? patients.map(p => `
                 <div class="list-item">
                   <strong>${p.name}</strong>
-                  <span class="muted">${p.patient_id}</span>
+                  <div class="muted">${p.patient_id}</div>
                 </div>
               `).join("")
-              : `<p class="muted">No hay pacientes cargados.</p>`
+              : `<p class="empty">No patients yet.</p>`
           }
         </div>
       </div>
     </div>
   `;
 
-  document.getElementById("create-patient-btn").onclick = async () => {
+  document.getElementById("save-patient-btn").onclick = async () => {
     const name = document.getElementById("patient-name").value.trim();
     if (!name) return;
 
@@ -168,7 +271,7 @@ async function renderPatients() {
       method: "POST"
     });
 
-    document.getElementById("patient-create-result").textContent = JSON.stringify(data, null, 2);
+    document.getElementById("patient-result").textContent = JSON.stringify(data, null, 2);
     state.selectedPatientId = data.patient_id;
     renderPatients();
   };
@@ -178,54 +281,60 @@ async function renderSessions() {
   const patients = await getJson(`${api()}/patients`);
 
   els.sessions.innerHTML = `
-    <div class="grid-2">
+    <div class="grid-hero">
       <div class="card">
-        <h3>Nueva sesión</h3>
+        <h3>Create Session</h3>
 
-        <label class="muted">Paciente</label>
-        <select id="session-patient">
-          <option value="">Seleccionar paciente</option>
+        <label class="muted">Patient</label>
+        <select id="session-patient-select">
+          <option value="">Select patient</option>
           ${patients.map(p => `<option value="${p.patient_id}">${p.name} — ${p.patient_id}</option>`).join("")}
         </select>
 
         <div class="form-actions">
-          <button class="btn btn-primary" id="create-session-btn">Crear sesión</button>
+          <button class="btn btn-primary" id="create-session-btn">Create session</button>
         </div>
 
-        <pre id="session-create-result"></pre>
+        <div class="result-box">
+          <pre id="session-result">Waiting action...</pre>
+        </div>
       </div>
 
       <div class="card">
-        <h3>Sesiones del paciente</h3>
-        <div id="patient-sessions-box" class="list">
-          <p class="muted">Seleccioná un paciente para ver sus sesiones.</p>
+        <h3>Session Log</h3>
+        <div id="sessions-list" class="list">
+          <p class="empty">Select a patient to load sessions.</p>
         </div>
       </div>
     </div>
   `;
 
-  const select = document.getElementById("session-patient");
-  const sessionsBox = document.getElementById("patient-sessions-box");
+  const patientSelect = document.getElementById("session-patient-select");
+  const sessionsList = document.getElementById("sessions-list");
 
-  select.onchange = async () => {
-    const patientId = select.value;
+  patientSelect.onchange = async () => {
+    const patientId = patientSelect.value;
     state.selectedPatientId = patientId;
-    if (!patientId) return;
+
+    if (!patientId) {
+      sessionsList.innerHTML = `<p class="empty">Select a patient to load sessions.</p>`;
+      return;
+    }
 
     const sessions = await getJson(`${api()}/patient/${patientId}/sessions`);
 
-    sessionsBox.innerHTML = sessions.length
+    sessionsList.innerHTML = sessions.length
       ? sessions.map(s => `
-          <div class="list-item">
-            <strong>${s.session_id}</strong>
-            <span class="muted">${s.ts}</span>
-          </div>
-        `).join("")
-      : `<p class="muted">Este paciente no tiene sesiones.</p>`;
+        <div class="list-item">
+          <strong>${s.session_id}</strong>
+          <div class="muted">${s.ts}</div>
+        </div>
+      `).join("")
+      : `<p class="empty">No sessions for this patient.</p>`;
   };
 
   document.getElementById("create-session-btn").onclick = async () => {
-    const patientId = select.value;
+    const patientId = patientSelect.value;
     if (!patientId) return;
 
     const data = await getJson(`${api()}/session`, {
@@ -234,10 +343,10 @@ async function renderSessions() {
       body: JSON.stringify({ patient_id: patientId })
     });
 
-    document.getElementById("session-create-result").textContent = JSON.stringify(data, null, 2);
+    document.getElementById("session-result").textContent = JSON.stringify(data, null, 2);
     state.selectedPatientId = patientId;
     state.selectedSessionId = data.session_id;
-    select.dispatchEvent(new Event("change"));
+    patientSelect.dispatchEvent(new Event("change"));
   };
 }
 
@@ -245,22 +354,22 @@ async function renderCheckin() {
   const patients = await getJson(`${api()}/patients`);
 
   els.checkin.innerHTML = `
-    <div class="grid-2">
+    <div class="grid-hero">
       <div class="card">
-        <h3>Nuevo check-in M1</h3>
+        <h3>M1 — Biometric Check-in</h3>
 
-        <label class="muted">Paciente</label>
-        <select id="checkin-patient">
-          <option value="">Seleccionar paciente</option>
+        <label class="muted">Patient</label>
+        <select id="checkin-patient-select">
+          <option value="">Select patient</option>
           ${patients.map(p => `<option value="${p.patient_id}">${p.name} — ${p.patient_id}</option>`).join("")}
         </select>
 
-        <label class="muted" style="margin-top:12px; display:block;">Sesión</label>
-        <select id="checkin-session">
-          <option value="">Seleccionar sesión</option>
+        <label class="muted" style="display:block; margin-top:12px;">Session</label>
+        <select id="checkin-session-select">
+          <option value="">Select session</option>
         </select>
 
-        <div class="form-grid" style="margin-top:16px;">
+        <div class="form-grid-3" style="margin-top:16px;">
           <div>
             <label class="muted">RMSSD</label>
             <input id="rmssd_ms" value="18.4" />
@@ -288,35 +397,37 @@ async function renderCheckin() {
         </div>
 
         <div class="form-actions">
-          <button class="btn btn-primary" id="send-checkin-btn">Guardar check-in</button>
+          <button class="btn btn-primary" id="save-checkin-btn">Save check-in</button>
         </div>
 
-        <pre id="checkin-result"></pre>
+        <div class="result-box">
+          <pre id="checkin-result">Waiting action...</pre>
+        </div>
       </div>
 
       <div class="card">
-        <h3>Eventos de la sesión</h3>
-        <div id="session-events-box" class="list">
-          <p class="muted">Seleccioná una sesión para ver eventos.</p>
+        <h3>Session Events</h3>
+        <div id="checkin-events-list" class="list">
+          <p class="empty">Select session to view events.</p>
         </div>
       </div>
     </div>
   `;
 
-  const patientSelect = document.getElementById("checkin-patient");
-  const sessionSelect = document.getElementById("checkin-session");
-  const eventsBox = document.getElementById("session-events-box");
+  const patientSelect = document.getElementById("checkin-patient-select");
+  const sessionSelect = document.getElementById("checkin-session-select");
+  const eventsList = document.getElementById("checkin-events-list");
 
   patientSelect.onchange = async () => {
     const patientId = patientSelect.value;
     state.selectedPatientId = patientId;
-    sessionSelect.innerHTML = `<option value="">Seleccionar sesión</option>`;
+    sessionSelect.innerHTML = `<option value="">Select session</option>`;
 
     if (!patientId) return;
 
     const sessions = await getJson(`${api()}/patient/${patientId}/sessions`);
     sessionSelect.innerHTML = `
-      <option value="">Seleccionar sesión</option>
+      <option value="">Select session</option>
       ${sessions.map(s => `<option value="${s.session_id}">${s.session_id}</option>`).join("")}
     `;
   };
@@ -324,24 +435,28 @@ async function renderCheckin() {
   sessionSelect.onchange = async () => {
     const sessionId = sessionSelect.value;
     state.selectedSessionId = sessionId;
-    if (!sessionId) return;
+
+    if (!sessionId) {
+      eventsList.innerHTML = `<p class="empty">Select session to view events.</p>`;
+      return;
+    }
 
     const events = await getJson(`${api()}/session/${sessionId}/events`);
-    eventsBox.innerHTML = events.length
+
+    eventsList.innerHTML = events.length
       ? events.map(e => `
-          <div class="list-item">
-            <strong>${e.type}</strong>
-            <span class="muted">${e.ts}</span>
-            <pre>${JSON.stringify(e.payload, null, 2)}</pre>
-          </div>
-        `).join("")
-      : `<p class="muted">No hay eventos en esta sesión.</p>`;
+        <div class="list-item">
+          <strong>${e.type}</strong>
+          <div class="muted">${e.ts}</div>
+          <pre>${JSON.stringify(e.payload, null, 2)}</pre>
+        </div>
+      `).join("")
+      : `<p class="empty">No events in this session.</p>`;
   };
 
-  document.getElementById("send-checkin-btn").onclick = async () => {
+  document.getElementById("save-checkin-btn").onclick = async () => {
     const patientId = patientSelect.value;
     const sessionId = sessionSelect.value;
-
     if (!patientId || !sessionId) return;
 
     const payload = {
@@ -372,4 +487,4 @@ async function renderCheckin() {
   };
 }
 
-setView("dashboard");
+setActiveView("dashboard");
