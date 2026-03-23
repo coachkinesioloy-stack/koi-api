@@ -12,7 +12,8 @@ from .models import (
 )
 from .r2 import put_json, list_keys, get_json
 
-app = FastAPI(title="KOI Pilot API", version="0.1.0")
+
+app = FastAPI(title="HANNA Pilot API", version="0.1.0")
 
 
 def now_iso() -> str:
@@ -23,13 +24,37 @@ def protocol_version() -> str:
     return os.environ.get("KOI_PROTOCOL_VERSION", "KOI-0.1.0")
 
 
+def classify_sna(rmssd_ms: float) -> str:
+    if rmssd_ms < 20:
+        return "Simpaticotonia"
+    if rmssd_ms <= 50:
+        return "Equilibrio"
+    return "Vagotonia"
+
+
 @app.get("/health")
 def health():
     return {
         "ok": True,
         "ts": now_iso(),
-        "protocol_version": protocol_version()
+        "protocol_version": protocol_version(),
     }
+
+
+@app.post("/patient")
+def create_patient(name: str):
+    patient_id = str(uuid.uuid4())
+
+    record = {
+        "patient_id": patient_id,
+        "name": name,
+        "created_at": now_iso()
+    }
+
+    key = f"patients/{patient_id}.json"
+    put_json(key, record)
+
+    return record
 
 
 @app.post("/session", response_model=CreateSessionResponse)
@@ -57,7 +82,7 @@ def create_session(req: CreateSessionRequest):
 
     return CreateSessionResponse(
         session_id=session_id,
-        protocol_version=protocol_version()
+        protocol_version=protocol_version(),
     )
 
 
@@ -69,6 +94,13 @@ def create_event(req: CreateEventRequest):
     event_id = str(uuid.uuid4())
     ts = (req.ts or datetime.now(timezone.utc)).isoformat()
 
+    payload = dict(req.payload)
+
+    if req.type == "M1_MEASURED":
+        rmssd = payload.get("rmssd_ms")
+        if rmssd is not None:
+            payload["sna_state"] = classify_sna(float(rmssd))
+
     record = EventRecord(
         event_id=event_id,
         ts=ts,
@@ -79,7 +111,7 @@ def create_event(req: CreateEventRequest):
         protocol_version=protocol_version(),
         schema_name=req.schema_name,
         schema_version=req.schema_version,
-        payload=req.payload,
+        payload=payload,
     ).model_dump()
 
     key = f"events/{ts[:7]}/{req.session_id}/{event_id}.json"
@@ -104,9 +136,8 @@ def get_session_events(session_id: str):
     return records
 
 
-# endpoint de debug para ver qué archivos existen
 @app.get("/debug/keys")
 def debug_keys():
     return {
-        "keys": list_keys(prefix="events/")
+        "keys": list_keys(prefix="")
     }
