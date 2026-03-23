@@ -2,213 +2,52 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>HANNA</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0f172a;
-      color: white;
-    }
-
-    .layout {
-      display: flex;
-      height: 100vh;
-    }
-
-    .sidebar {
-      width: 220px;
-      background: #020617;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .sidebar h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    .sidebar button {
-      background: transparent;
-      border: none;
-      color: #94a3b8;
-      text-align: left;
-      cursor: pointer;
-      padding: 10px;
-      border-radius: 8px;
-    }
-
-    .sidebar button:hover {
-      background: #1e293b;
-      color: white;
-    }
-
-    .main {
-      flex: 1;
-      padding: 30px;
-    }
-
-    .card {
-      background: #020617;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 8px;
-      border: none;
-      background: #0f172a;
-      color: white;
-    }
-
-    button.action {
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      background: #22c55e;
-      color: black;
-      cursor: pointer;
-    }
-
-    pre {
-      background: #020617;
-      padding: 10px;
-      border-radius: 10px;
-      overflow: auto;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HANNA Dashboard</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
-
 <body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div>
+          <h1>HANNA</h1>
+          <p>Health Adaptive Network</p>
+        </div>
+      </div>
 
-<div class="layout">
+      <nav class="nav">
+        <button class="nav-link active" data-view="dashboard">Dashboard</button>
+        <button class="nav-link" data-view="patients">Pacientes</button>
+        <button class="nav-link" data-view="sessions">Sesiones</button>
+        <button class="nav-link" data-view="checkin">Evaluación M1</button>
+      </nav>
 
-  <div class="sidebar">
-    <h2>HANNA</h2>
+      <div class="sidebar-footer">
+        <p>Versión piloto</p>
+      </div>
+    </aside>
 
-    <button onclick="show('dashboard')">Dashboard</button>
-    <button onclick="show('patients')">Pacientes</button>
-    <button onclick="show('session')">Sesión</button>
-    <button onclick="show('checkin')">Check-in</button>
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="view-title">Dashboard</h2>
+          <p id="view-subtitle">Resumen operativo de HANNA</p>
+        </div>
+        <div class="api-box">
+          <label>API</label>
+          <input id="apiBase" value="https://hanna-api-9rub.onrender.com" />
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active"></section>
+      <section id="view-patients" class="view"></section>
+      <section id="view-sessions" class="view"></section>
+      <section id="view-checkin" class="view"></section>
+    </main>
   </div>
 
-  <div class="main" id="content"></div>
-
-</div>
-
-<script>
-
-const API = "https://hanna-api-9rub.onrender.com"
-
-let sessionId = ""
-
-function show(view) {
-
-  if (view === "dashboard") {
-    content.innerHTML = `<h1>Dashboard</h1>`
-  }
-
-  if (view === "patients") {
-    content.innerHTML = `
-      <div class="card">
-        <h2>Crear paciente</h2>
-        <input id="name" placeholder="Nombre" />
-        <button class="action" onclick="createPatient()">Crear</button>
-        <pre id="out"></pre>
-      </div>
-    `
-  }
-
-  if (view === "session") {
-    content.innerHTML = `
-      <div class="card">
-        <h2>Crear sesión</h2>
-        <input id="patientId" value="P-00001"/>
-        <button class="action" onclick="createSession()">Crear sesión</button>
-        <pre id="out"></pre>
-      </div>
-    `
-  }
-
-  if (view === "checkin") {
-    content.innerHTML = `
-      <div class="card">
-        <h2>M1 Check-in</h2>
-        <button class="action" onclick="sendCheckin()">Enviar</button>
-        <pre id="out"></pre>
-      </div>
-    `
-  }
-
-}
-
-async function createPatient() {
-  const name = document.getElementById("name").value
-
-  const res = await fetch(API + "/patient?name=" + name, {
-    method: "POST"
-  })
-
-  const data = await res.json()
-  out.textContent = JSON.stringify(data, null, 2)
-}
-
-async function createSession() {
-  const patientId = document.getElementById("patientId").value
-
-  const res = await fetch(API + "/session", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ patient_id: patientId })
-  })
-
-  const data = await res.json()
-  sessionId = data.session_id
-
-  out.textContent = JSON.stringify(data, null, 2)
-}
-
-async function sendCheckin() {
-
-  const payload = {
-    session_id: sessionId,
-    patient_id: "P-00001",
-    type: "M1_MEASURED",
-    actor: "system",
-    schema_name: "biometric_checkin",
-    schema_version: "1",
-    payload: {
-      rmssd_ms: 18,
-      hr_bpm: 80,
-      rr_rpm: 14,
-      sqi: 0.9,
-      eva: 5,
-      energy: 6
-    }
-  }
-
-  const res = await fetch(API + "/event", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payload)
-  })
-
-  const data = await res.json()
-  out.textContent = JSON.stringify(data, null, 2)
-}
-
-show("dashboard")
-
-</script>
-
+  <script src="./app.js"></script>
 </body>
 </html>
