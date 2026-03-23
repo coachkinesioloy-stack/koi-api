@@ -14,7 +14,7 @@ from .models import (
 from .r2 import put_json, list_keys, get_json
 
 
-app = FastAPI(title="HANNA Pilot API", version="0.1.0")
+app = FastAPI(title="HANNA API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -66,6 +66,28 @@ def create_patient(name: str):
     return record
 
 
+@app.get("/patients")
+def get_patients():
+    keys = list_keys(prefix="patients/")
+    patients = []
+
+    for k in keys:
+        data = get_json(k)
+        if data:
+            patients.append(data)
+
+    patients.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return patients
+
+
+@app.get("/patient/{patient_id}")
+def get_patient(patient_id: str):
+    data = get_json(f"patients/{patient_id}.json")
+    if not data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return data
+
+
 @app.post("/session", response_model=CreateSessionResponse)
 def create_session(req: CreateSessionRequest):
     session_id = str(uuid.uuid4())
@@ -93,6 +115,27 @@ def create_session(req: CreateSessionRequest):
         session_id=session_id,
         protocol_version=protocol_version(),
     )
+
+
+@app.get("/patient/{patient_id}/sessions")
+def get_patient_sessions(patient_id: str):
+    keys = list_keys(prefix="events/")
+    sessions = []
+
+    for k in keys:
+        data = get_json(k)
+        if not data:
+            continue
+
+        if data.get("type") == "SESSION_CREATED" and data.get("patient_id") == patient_id:
+            sessions.append({
+                "session_id": data.get("session_id"),
+                "patient_id": data.get("patient_id"),
+                "ts": data.get("ts")
+            })
+
+    sessions.sort(key=lambda x: x.get("ts", ""), reverse=True)
+    return sessions
 
 
 @app.post("/event", response_model=EventRecord)
@@ -141,12 +184,33 @@ def get_session_events(session_id: str):
             records.append(EventRecord(**data))
 
     records.sort(key=lambda r: r.ts)
-
     return records
+
+
+@app.get("/dashboard/summary")
+def dashboard_summary():
+    patients = get_patients()
+
+    keys = list_keys(prefix="events/")
+    all_events = []
+    for k in keys:
+        data = get_json(k)
+        if data:
+            all_events.append(data)
+
+    sessions = [e for e in all_events if e.get("type") == "SESSION_CREATED"]
+    checkins = [e for e in all_events if e.get("type") == "M1_MEASURED"]
+
+    latest_checkin = checkins[-1] if checkins else None
+
+    return {
+        "patients_count": len(patients),
+        "sessions_count": len(sessions),
+        "checkins_count": len(checkins),
+        "latest_checkin": latest_checkin,
+    }
 
 
 @app.get("/debug/keys")
 def debug_keys():
-    return {
-        "keys": list_keys(prefix="")
-    }
+    return {"keys": list_keys(prefix="")}
