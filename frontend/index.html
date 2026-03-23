@@ -8,18 +8,224 @@
 </head>
 <body>
   <div class="bg-parallax" id="bgParallax">
-    <div class="bg-gradient"></div>
-    <div class="bg-orb orb-1"></div>
-    <div class="bg-orb orb-2"></div>
-    <div class="bg-orb orb-3"></div>
+    <div class="bg-glow glow-a"></div>
+    <div class="bg-glow glow-b"></div>
+    <div class="bg-glow glow-c"></div>
 
     <svg class="bg-network" viewBox="0 0 1600 1200" preserveAspectRatio="none">
       <defs>
         <linearGradient id="bgLineGold" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="rgba(212,175,55,0.00)"/>
-          <stop offset="30%" stop-color="rgba(212,175,55,0.12)"/>
-          <stop offset="70%" stop-color="rgba(132,219,230,0.10)"/>
-          <stop offset="100%" stop-color="rgba(132,219,230,0.00)"/>
+          <stop offset="0%" stop-color="rgba(212,175,55,0.00)"></stop>
+          <stop offset="50%" stop-color="rgba(212,175,55,0.15)"></stop>
+          <stop offset="100%" stop-color="rgba(212,175,55,0.00)"></stop>
+        </linearGradient>
+        <linearGradient id="bgLineCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="rgba(132,219,230,0.00)"></stop>
+          <stop offset="50%" stop-color="rgba(132,219,230,0.10)"></stop>
+          <stop offset="100%" stop-color="rgba(132,219,230,0.00)"></stop>
         </linearGradient>
       </defs>
-      <path class="bg-path p1" d="M0,240 C200,150 380,300 560,250 C820,180 930,80 1200,140 C1400,180 1490,280 1600,240"></path
+
+      <path class="network-path n1" d="M0,250 C160,190 280,330 430,300 C630,260 690,130 930,170 C1170,210 1310,360 1600,300"></path>
+      <path class="network-path n2" d="M0,430 C180,360 310,550 530,500 C760,450 880,310 1050,340 C1280,380 1380,520 1600,470"></path>
+      <path class="network-path n3" d="M0,690 C200,600 360,790 590,720 C850,640 980,520 1180,560 C1380,600 1490,760 1600,720"></path>
+      <path class="network-path n4" d="M0,930 C250,850 410,1010 640,960 C840,920 1020,780 1250,810 C1420,830 1540,930 1600,900"></path>
+    </svg>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar glass reveal">
+      <div class="sidebar-top">
+        <div class="brand">
+          <img src="./logo.png" alt="HANNA" class="brand-logo" />
+          <div>
+            <h1>HANNA</h1>
+            <p>The Path of Adaptation</p>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-btn active" data-view="dashboard">INICIO</button>
+          <button class="nav-btn" data-view="patients">PACIENTES</button>
+          <button class="nav-btn" data-view="sessions">SESIONES</button>
+          <button class="nav-btn" data-view="checkin">EVALUACIONES</button>
+          <button class="nav-btn" data-view="settings">CONFIGURACIÓN</button>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-line"></div>
+        <p>Precision · Luxury Health · Neuro-adaptation</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="view-dashboard" class="view active">
+        <div class="dashboard-grid">
+          <section class="card welcome-card reveal">
+            <div class="welcome-text">
+              <div class="eyebrow">HANNA SYSTEM,</div>
+              <h2>BIENVENIDA, <span>[NOMBRE]</span></h2>
+              <p>Sigue tu Camino a la Adaptación.</p>
+            </div>
+          </section>
+
+          <section class="card api-card reveal">
+            <h3>ESTADO DEL SISTEMA HANNA</h3>
+            <div class="pulse-box">
+              <svg viewBox="0 0 280 70" class="pulse-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="rgba(212,175,55,0.15)"></stop>
+                    <stop offset="30%" stop-color="#f7e4aa"></stop>
+                    <stop offset="60%" stop-color="#d4af37"></stop>
+                    <stop offset="100%" stop-color="rgba(212,175,55,0.05)"></stop>
+                  </linearGradient>
+                </defs>
+                <path class="pulse-line"
+                  d="M0,35 L60,35 L78,35 L92,35 L105,20 L116,48 L128,8 L140,60 L152,35 L182,35 L200,35 L214,18 L228,48 L242,35 L280,35"></path>
+              </svg>
+            </div>
+
+            <div class="api-row">
+              <span class="status-badge">
+                <i></i>
+                API ACTIVA
+              </span>
+            </div>
+
+            <div class="api-url" id="apiUrlText">https://hanna-api-9rub.onrender.com</div>
+          </section>
+
+          <section class="card profile-card reveal">
+            <div class="profile-top">
+              <div class="avatar"></div>
+              <div>
+                <div class="profile-title">BIENVENIDA,</div>
+                <div class="profile-name">LICENCIADA</div>
+              </div>
+              <div class="profile-flare"></div>
+            </div>
+
+            <div class="profile-bottom">
+              <div class="profile-dot"></div>
+              <div>
+                <strong>Licenciado</strong>
+                <span>Elite coaching</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card mosaic-card reveal">
+            <div class="mosaic-bg-lines"></div>
+
+            <div class="mosaic-left">
+              <div class="media media-a float-a"></div>
+              <div class="media media-b float-b"></div>
+              <div class="media media-c float-c"></div>
+              <div class="media media-d float-d"></div>
+            </div>
+
+            <div class="mosaic-center">
+              <div class="hero-media media media-e"></div>
+              <div class="overlay-note note-a">Cámara analítica N/A<br>Fuerza: N/A<br>Postura: 9%</div>
+
+              <div class="anatomy-wrap">
+                <div class="anatomy-figure">
+                  <div class="bone bone-1"></div>
+                  <div class="bone bone-2"></div>
+                  <div class="joint"></div>
+                </div>
+              </div>
+
+              <div class="overlay-note note-b">Ángulo de Rodilla: 95° +/-2°<br>Fuerza Muscular: N/A<br>Postura: Optimizada</div>
+              <div class="overlay-note note-c">Ángulo de Rodilla: 95°<br>Fuerza Muscular: N/A<br>Postura: N/A</div>
+            </div>
+
+            <div class="mosaic-right">
+              <div class="ai-net"></div>
+              <div class="ai-title">ANÁLISIS DE IA EN TIEMPO REAL</div>
+            </div>
+          </section>
+
+          <section class="card session-card reveal">
+            <h3>SESIÓN EN CURSO</h3>
+            <div class="big-name" id="sessionPatientName">CARLOS M.</div>
+            <div class="muted">CONTADOR:</div>
+            <div class="big-time">00:05:00</div>
+          </section>
+
+          <section class="card hrv-card reveal">
+            <div class="card-head">
+              <h3>VFC (HRV)</h3>
+              <div class="hrv-head-value"><span id="hrvValue">144</span> / <em>HRV</em></div>
+            </div>
+
+            <div class="chart-wrap">
+              <svg viewBox="0 0 380 210" class="chart-svg" preserveAspectRatio="none">
+                <g class="grid-lines">
+                  <line x1="36" y1="30" x2="36" y2="180"></line>
+                  <line x1="36" y1="180" x2="350" y2="180"></line>
+                  <line x1="36" y1="145" x2="350" y2="145"></line>
+                  <line x1="36" y1="110" x2="350" y2="110"></line>
+                  <line x1="36" y1="75" x2="350" y2="75"></line>
+                </g>
+
+                <path class="hrv-line-gold" d="M36,112 C56,92 68,130 88,104 C108,90 126,154 146,118 C166,80 182,122 202,96 C222,102 240,126 260,88 C280,84 296,112 316,96 C330,88 342,90 350,95"></path>
+                <path class="hrv-line-cyan" d="M36,102 C58,116 70,92 90,110 C110,126 130,100 150,106 C170,112 190,94 210,118 C230,136 250,108 270,120 C290,132 312,90 330,108 C340,112 346,114 350,110"></path>
+
+                <line class="chart-marker" x1="300" y1="28" x2="300" y2="180"></line>
+                <text x="276" y="22" class="chart-float">153.5</text>
+
+                <text x="10" y="182" class="chart-label">80</text>
+                <text x="6" y="145" class="chart-label">95</text>
+                <text x="2" y="110" class="chart-label">110</text>
+                <text x="0" y="75" class="chart-label">125</text>
+                <text x="0" y="40" class="chart-label">135</text>
+
+                <text x="40" y="202" class="chart-label">02:00</text>
+                <text x="120" y="202" class="chart-label">13:00</text>
+                <text x="200" y="202" class="chart-label">13:30</text>
+                <text x="280" y="202" class="chart-label">14:00</text>
+              </svg>
+            </div>
+          </section>
+
+          <section class="card adapt-card reveal">
+            <h3>ADAPTACIÓN TOTAL</h3>
+            <div class="adapt-bar-wrap">
+              <div class="adapt-bar">
+                <div class="adapt-fill" id="adaptFill"></div>
+              </div>
+              <div class="adapt-star">✦</div>
+            </div>
+          </section>
+
+          <section class="card updates-card reveal">
+            <h3>ULTIMA ACTUALIZACIÓN CLÍNICA</h3>
+            <ul class="update-list">
+              <li>HRV (VFC): <span class="good" id="updHrv">+5%</span></li>
+              <li>ANATOMÍA: <span class="good">92% OPT.</span></li>
+              <li>ANATOMÍA: <span class="good">88% OPT.</span></li>
+              <li>NEUROMÍA: <span class="cyan">52% OPT.</span></li>
+              <li>AR [PVRÍA]: <span class="good">+1%</span></li>
+            </ul>
+          </section>
+
+          <section class="footer-actions glass reveal">
+            <button class="action-btn primary pulse-center" id="startSessionBtn">INICIAR SESIÓN DE COACHING</button>
+            <button class="action-btn secondary pulse-center">REVISAR HISTORIAL CLÍNICO</button>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-patients" class="view"></section>
+      <section id="view-sessions" class="view"></section>
+      <section id="view-checkin" class="view"></section>
+      <section id="view-settings" class="view"></section>
+    </main>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
