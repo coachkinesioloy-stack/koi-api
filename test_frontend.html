@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>HANNA Test Frontend</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f6f7fb;
+      color: #222;
+    }
+    .box {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    input, button, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    button {
+      cursor: pointer;
+      background: #111827;
+      color: white;
+      border: none;
+    }
+    pre {
+      background: #111827;
+      color: #d1fae5;
+      padding: 16px;
+      border-radius: 10px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>HANNA Test Frontend</h1>
+
+  <div class="box">
+    <label>API Base URL</label>
+    <input id="baseUrl" value="https://hanna-api-9rub.onrender.com" />
+  </div>
+
+  <div class="box">
+    <h2>1. Crear sesión</h2>
+    <label>Patient ID</label>
+    <input id="patientId" value="P-00001" />
+    <button onclick="createSession()">Crear sesión</button>
+    <pre id="sessionResult"></pre>
+  </div>
+
+  <div class="box">
+    <h2>2. Crear evento M1_MEASURED</h2>
+    <label>Session ID</label>
+    <input id="sessionId" />
+    <button onclick="createEvent()">Enviar check-in</button>
+    <pre id="eventResult"></pre>
+  </div>
+
+  <div class="box">
+    <h2>3. Ver eventos de la sesión</h2>
+    <button onclick="loadEvents()">Cargar eventos</button>
+    <pre id="eventsResult"></pre>
+  </div>
+
+  <script>
+    async function createSession() {
+      const baseUrl = document.getElementById("baseUrl").value;
+      const patientId = document.getElementById("patientId").value;
+
+      const res = await fetch(`${baseUrl}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patient_id: patientId })
+      });
+
+      const data = await res.json();
+      document.getElementById("sessionResult").textContent = JSON.stringify(data, null, 2);
+
+      if (data.session_id) {
+        document.getElementById("sessionId").value = data.session_id;
+      }
+    }
+
+    async function createEvent() {
+      const baseUrl = document.getElementById("baseUrl").value;
+      const patientId = document.getElementById("patientId").value;
+      const sessionId = document.getElementById("sessionId").value;
+
+      const payload = {
+        session_id: sessionId,
+        patient_id: patientId,
+        type: "M1_MEASURED",
+        actor: "system",
+        schema_name: "biometric_checkin",
+        schema_version: "1",
+        payload: {
+          rmssd_ms: 18.4,
+          hr_bpm: 82,
+          rr_rpm: 14,
+          sqi: 0.91,
+          eva: 5,
+          energy: 6
+        }
+      };
+
+      const res = await fetch(`${baseUrl}/event`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      document.getElementById("eventResult").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function loadEvents() {
+      const baseUrl = document.getElementById("baseUrl").value;
+      const sessionId = document.getElementById("sessionId").value;
+
+      const res = await fetch(`${baseUrl}/session/${sessionId}/events`);
+      const data = await res.json();
+      document.getElementById("eventsResult").textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
