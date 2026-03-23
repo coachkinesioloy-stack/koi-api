@@ -37,25 +37,25 @@ function setActiveView(view) {
 
   if (view === "dashboard") {
     els.pageTitle.textContent = "Good evening";
-    els.pageSubtitle.textContent = "The path of adaptation.";
+    els.pageSubtitle.textContent = "The path of adaptation. Pure. Precise.";
     renderDashboard();
   }
 
   if (view === "patients") {
     els.pageTitle.textContent = "Patients";
-    els.pageSubtitle.textContent = "Curated clinical registry.";
+    els.pageSubtitle.textContent = "Curated elite registry.";
     renderPatients();
   }
 
   if (view === "sessions") {
     els.pageTitle.textContent = "Sessions";
-    els.pageSubtitle.textContent = "Precise operational flow.";
+    els.pageSubtitle.textContent = "Operational flow with calm precision.";
     renderSessions();
   }
 
   if (view === "checkin") {
     els.pageTitle.textContent = "Evaluation M1";
-    els.pageSubtitle.textContent = "Autonomic state capture.";
+    els.pageSubtitle.textContent = "Autonomic adaptation capture.";
     renderCheckin();
   }
 }
@@ -71,13 +71,13 @@ els.floatingAction.addEventListener("click", () => {
 function computeAdaptation(summary) {
   const latest = summary.latest_checkin;
   if (!latest || !latest.payload) {
-    return { score: 64, state: "Awaiting Data" };
+    return { score: 68, state: "Awaiting Data" };
   }
 
   const rmssd = Number(latest.payload.rmssd_ms || 0);
   if (rmssd < 20) return { score: 42, state: "Simpaticotonia" };
   if (rmssd <= 50) return { score: 76, state: "Equilibrio" };
-  return { score: 88, state: "Vagotonia" };
+  return { score: 90, state: "Vagotonia" };
 }
 
 function ringSvg(score) {
@@ -89,9 +89,9 @@ function ringSvg(score) {
     <svg class="ring-svg" viewBox="0 0 240 240">
       <defs>
         <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#fff0bf"></stop>
+          <stop offset="0%" stop-color="#fff5cf"></stop>
           <stop offset="50%" stop-color="#d4af37"></stop>
-          <stop offset="100%" stop-color="#b98209"></stop>
+          <stop offset="100%" stop-color="#bd8a10"></stop>
         </linearGradient>
       </defs>
       <circle class="ring-track" cx="120" cy="120" r="${radius}"></circle>
@@ -112,15 +112,15 @@ function pulseSvg() {
     <svg class="signal-svg" viewBox="0 0 420 110" preserveAspectRatio="none">
       <defs>
         <linearGradient id="pulseGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="rgba(212,175,55,0.15)"></stop>
-          <stop offset="20%" stop-color="#f7dea1"></stop>
+          <stop offset="0%" stop-color="rgba(212,175,55,0.05)"></stop>
+          <stop offset="20%" stop-color="#fff3c1"></stop>
           <stop offset="55%" stop-color="#d4af37"></stop>
           <stop offset="100%" stop-color="rgba(212,175,55,0.08)"></stop>
         </linearGradient>
       </defs>
       <path
         class="signal-path"
-        d="M0,58 L85,58 L110,58 L126,58 L145,58 L162,35 L174,70 L186,18 L200,86 L212,58 L238,58 L258,58 L276,34 L295,74 L313,58 L420,58"
+        d="M0,60 L80,60 L110,60 L135,60 L156,60 L172,38 L183,74 L196,20 L210,86 L224,60 L254,60 L278,60 L296,34 L316,75 L336,60 L420,60"
       ></path>
     </svg>
   `;
@@ -143,11 +143,11 @@ async function renderDashboard() {
           </div>
 
           <div class="adaptation-copy">
-            <div class="eyebrow">Adaptation Path</div>
+            <span class="eyebrow">Adaptation path</span>
             <h3 class="big-state">${adaptation.state}</h3>
             <p>
-              HANNA condenses autonomic, anatomical and evolutionary signals into a quiet decision layer.
-              Every metric should feel rare, useful and precise.
+              HANNA condenses heart-rate, neuro-immune tone and anatomical tracking into one clean state layer.
+              Each signal should feel like visual gold.
             </p>
             <div class="signal-line">
               ${pulseSvg()}
@@ -162,14 +162,17 @@ async function renderDashboard() {
           data.latest_checkin
             ? `
               <div class="subtle-pill">${data.latest_checkin.payload.sna_state || "No state"}</div>
+
               <div style="margin-top:18px;">
                 <div class="card-value">${data.latest_checkin.payload.hr_bpm || "--"} <span class="muted">bpm</span></div>
                 <div class="card-label">Heart-rate</div>
               </div>
+
               <div style="margin-top:16px;">
                 <div class="card-value">${data.latest_checkin.payload.rmssd_ms || "--"} <span class="muted">ms</span></div>
-                <div class="card-label">Heart-rate variability</div>
+                <div class="card-label">HRV</div>
               </div>
+
               <div class="timeline">
                 <span></span>
                 <span class="active"></span>
@@ -178,9 +181,7 @@ async function renderDashboard() {
                 <span></span>
               </div>
             `
-            : `
-              <p class="empty">No adaptation data yet.</p>
-            `
+            : `<p class="empty">No adaptation data yet.</p>`
         }
       </div>
     </div>
@@ -190,20 +191,20 @@ async function renderDashboard() {
         <h3>Anatomical</h3>
         <div class="card-value">${data.sessions_count}</div>
         <div class="card-label">Registered sessions</div>
-        <div class="muted">Spatial and structural follow-up.</div>
+        <div class="muted">Body structure and functional pathway.</div>
       </div>
 
       <div class="card">
         <h3>Neuro-immune</h3>
         <div class="card-value">${data.checkins_count}</div>
         <div class="card-label">Captured check-ins</div>
-        <div class="neuro-lines"></div>
+        <div class="neuro-flow"></div>
       </div>
 
       <div class="card">
         <h3>Heart-rate</h3>
         <div class="signal-line" style="margin-bottom:14px;">${pulseSvg()}</div>
-        <div class="muted">Pulse signature and variability tone.</div>
+        <div class="muted">Pulse signature with subtle medical cyan.</div>
       </div>
 
       <div class="card">
@@ -229,6 +230,7 @@ async function renderPatients() {
     <div class="grid-hero">
       <div class="card">
         <h3>New Patient</h3>
+
         <div class="form-grid-2">
           <div style="grid-column: 1 / -1;">
             <label class="muted">Full name</label>
