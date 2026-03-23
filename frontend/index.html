@@ -7,87 +7,19 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="ambient">
-    <div class="ambient-orb orb-a"></div>
-    <div class="ambient-orb orb-b"></div>
-    <div class="ambient-orb orb-c"></div>
+  <div class="bg-parallax" id="bgParallax">
+    <div class="bg-gradient"></div>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
 
-    <svg class="network-svg" viewBox="0 0 1600 900" preserveAspectRatio="none">
+    <svg class="bg-network" viewBox="0 0 1600 1200" preserveAspectRatio="none">
       <defs>
-        <linearGradient id="networkGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="rgba(120,217,230,0.02)"/>
-          <stop offset="45%" stop-color="rgba(212,175,55,0.16)"/>
-          <stop offset="100%" stop-color="rgba(120,217,230,0.04)"/>
+        <linearGradient id="bgLineGold" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="rgba(212,175,55,0.00)"/>
+          <stop offset="30%" stop-color="rgba(212,175,55,0.12)"/>
+          <stop offset="70%" stop-color="rgba(132,219,230,0.10)"/>
+          <stop offset="100%" stop-color="rgba(132,219,230,0.00)"/>
         </linearGradient>
       </defs>
-      <path class="network-path path-a" d="M0,420 C180,360 250,510 430,470 C650,420 710,250 930,300 C1180,360 1240,540 1600,470"></path>
-      <path class="network-path path-b" d="M0,520 C220,430 380,650 610,570 C770,520 910,420 1080,470 C1300,530 1370,410 1600,450"></path>
-    </svg>
-  </div>
-
-  <div class="shell">
-    <aside class="sidebar glass">
-      <div class="brand">
-        <div class="brand-logo">
-          <img src="./logo.png" alt="HANNA logo" />
-        </div>
-        <div class="brand-copy">
-          <h1>HANNA</h1>
-          <p>The Path of Adaptation</p>
-        </div>
-      </div>
-
-      <nav class="nav">
-        <button class="nav-btn active" data-view="dashboard">Overview</button>
-        <button class="nav-btn" data-view="patients">Patients</button>
-        <button class="nav-btn" data-view="sessions">Sessions</button>
-        <button class="nav-btn" data-view="checkin">Evaluation</button>
-      </nav>
-
-      <div class="sidebar-bottom">
-        <div class="sidebar-line"></div>
-        <p>Precision · Luxury Health · Neuro-adaptation</p>
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar glass">
-        <div class="topbar-left">
-          <div class="hello-block">
-            <span class="eyebrow">HANNA system</span>
-            <h2 id="page-title">Good evening</h2>
-            <p id="page-subtitle">Pure. Precise. Adaptive.</p>
-          </div>
-        </div>
-
-        <div class="topbar-right">
-          <div class="api-box glass-soft">
-            <label>API</label>
-            <input id="apiBase" value="https://hanna-api-9rub.onrender.com" />
-          </div>
-
-          <div class="profile glass-soft">
-            <div class="profile-avatar"></div>
-            <div>
-              <strong>Licenciado</strong>
-              <span>Elite coaching</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <section id="view-dashboard" class="view active"></section>
-      <section id="view-patients" class="view"></section>
-      <section id="view-sessions" class="view"></section>
-      <section id="view-checkin" class="view"></section>
-
-      <button id="floating-action" class="floating-action">
-        <span class="floating-shine"></span>
-        <span>Iniciar sesión de coaching</span>
-      </button>
-    </main>
-  </div>
-
-  <script src="./app.js"></script>
-</body>
-</html>
+      <path class="bg-path p1" d="M0,240 C200,150 380,300 560,250 C820,180 930,80 1200,140 C1400,180 1490,280 1600,240"></path
