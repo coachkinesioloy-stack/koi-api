@@ -1,9 +1,11 @@
 import os
 import uuid
+import json
 from datetime import datetime, timezone
+from typing import List, Dict, Any
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
 
 from .models import (
     CreateSessionRequest,
@@ -11,8 +13,17 @@ from .models import (
     CreateEventRequest,
     EventRecord,
 )
-from .r2 import put_json, list_keys, get_json
+from .storage import (
+    ensure_files,
+    read_patients,
+    create_patient_row,
+    read_sessions,
+    create_session_row,
+    read_events,
+    create_event_row,
+)
 
+ensure_files()
 
 app = FastAPI(title="HANNA API", version="0.1.0")
 
@@ -52,64 +63,56 @@ def health():
 
 @app.post("/patient")
 def create_patient(name: str):
-    patient_id = str(uuid.uuid4())
+    name = (name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
 
-    record = {
+    patient_id = str(uuid.uuid4())
+    row = {
         "patient_id": patient_id,
         "name": name,
-        "created_at": now_iso()
+        "created_at": now_iso(),
     }
-
-    key = f"patients/{patient_id}.json"
-    put_json(key, record)
-
-    return record
+    create_patient_row(row)
+    return row
 
 
 @app.get("/patients")
 def get_patients():
-    keys = list_keys(prefix="patients/")
-    patients = []
-
-    for k in keys:
-        data = get_json(k)
-        if data:
-            patients.append(data)
-
+    patients = read_patients()
     patients.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return patients
 
 
 @app.get("/patient/{patient_id}")
 def get_patient(patient_id: str):
-    data = get_json(f"patients/{patient_id}.json")
-    if not data:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    return data
+    patients = read_patients()
+    for patient in patients:
+        if patient["patient_id"] == patient_id:
+            return patient
+    raise HTTPException(status_code=404, detail="Patient not found")
 
 
 @app.post("/session", response_model=CreateSessionResponse)
 def create_session(req: CreateSessionRequest):
-    session_id = str(uuid.uuid4())
+    patient_id = (req.patient_id or "").strip()
+    if not patient_id:
+        raise HTTPException(status_code=400, detail="patient_id is required")
 
-    event_id = str(uuid.uuid4())
+    patients = read_patients()
+    exists = any(p["patient_id"] == patient_id for p in patients)
+    if not exists:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    session_id = str(uuid.uuid4())
     ts = now_iso()
 
-    record = {
-        "event_id": event_id,
-        "ts": ts,
+    session_row = {
         "session_id": session_id,
-        "patient_id": req.patient_id,
-        "type": "SESSION_CREATED",
-        "actor": "system",
-        "protocol_version": protocol_version(),
-        "schema_name": "session",
-        "schema_version": "1",
-        "payload": {},
+        "patient_id": patient_id,
+        "ts": ts,
     }
-
-    key = f"events/{ts[:7]}/{session_id}/{event_id}.json"
-    put_json(key, record)
+    create_session_row(session_row)
 
     return CreateSessionResponse(
         session_id=session_id,
@@ -119,23 +122,10 @@ def create_session(req: CreateSessionRequest):
 
 @app.get("/patient/{patient_id}/sessions")
 def get_patient_sessions(patient_id: str):
-    keys = list_keys(prefix="events/")
-    sessions = []
-
-    for k in keys:
-        data = get_json(k)
-        if not data:
-            continue
-
-        if data.get("type") == "SESSION_CREATED" and data.get("patient_id") == patient_id:
-            sessions.append({
-                "session_id": data.get("session_id"),
-                "patient_id": data.get("patient_id"),
-                "ts": data.get("ts")
-            })
-
-    sessions.sort(key=lambda x: x.get("ts", ""), reverse=True)
-    return sessions
+    sessions = read_sessions()
+    filtered = [s for s in sessions if s["patient_id"] == patient_id]
+    filtered.sort(key=lambda x: x.get("ts", ""), reverse=True)
+    return filtered
 
 
 @app.post("/event", response_model=EventRecord)
@@ -143,15 +133,34 @@ def create_event(req: CreateEventRequest):
     if not req.session_id or not req.patient_id or not req.type:
         raise HTTPException(status_code=400, detail="Missing required fields")
 
+    sessions = read_sessions()
+    session_exists = any(s["session_id"] == req.session_id for s in sessions)
+    if not session_exists:
+        raise HTTPException(status_code=404, detail="Session not found")
+
     event_id = str(uuid.uuid4())
     ts = (req.ts or datetime.now(timezone.utc)).isoformat()
 
-    payload = dict(req.payload)
+    payload: Dict[str, Any] = dict(req.payload or {})
 
     if req.type == "M1_MEASURED":
         rmssd = payload.get("rmssd_ms")
         if rmssd is not None:
             payload["sna_state"] = classify_sna(float(rmssd))
+
+    event_row = {
+        "event_id": event_id,
+        "ts": ts,
+        "session_id": req.session_id,
+        "patient_id": req.patient_id,
+        "type": req.type,
+        "actor": req.actor,
+        "protocol_version": protocol_version(),
+        "schema_name": req.schema_name,
+        "schema_version": req.schema_version,
+        "payload_json": json.dumps(payload, ensure_ascii=False),
+    }
+    create_event_row(event_row)
 
     record = EventRecord(
         event_id=event_id,
@@ -164,44 +173,71 @@ def create_event(req: CreateEventRequest):
         schema_name=req.schema_name,
         schema_version=req.schema_version,
         payload=payload,
-    ).model_dump()
-
-    key = f"events/{ts[:7]}/{req.session_id}/{event_id}.json"
-    put_json(key, record)
+    )
 
     return record
 
 
 @app.get("/session/{session_id}/events", response_model=List[EventRecord])
 def get_session_events(session_id: str):
-    keys = list_keys(prefix="events/")
-    session_keys = [k for k in keys if f"/{session_id}/" in k]
+    rows = read_events()
+    filtered = [r for r in rows if r["session_id"] == session_id]
+    filtered.sort(key=lambda x: x.get("ts", ""))
 
-    records = []
-    for k in session_keys:
-        data = get_json(k)
-        if data:
-            records.append(EventRecord(**data))
+    records: List[EventRecord] = []
+    for row in filtered:
+        payload = {}
+        try:
+            payload = json.loads(row.get("payload_json", "") or "{}")
+        except json.JSONDecodeError:
+            payload = {}
 
-    records.sort(key=lambda r: r.ts)
+        records.append(
+            EventRecord(
+                event_id=row["event_id"],
+                ts=row["ts"],
+                session_id=row["session_id"],
+                patient_id=row["patient_id"],
+                type=row["type"],
+                actor=row["actor"],
+                protocol_version=row["protocol_version"],
+                schema_name=row["schema_name"],
+                schema_version=row["schema_version"],
+                payload=payload,
+            )
+        )
+
     return records
 
 
 @app.get("/dashboard/summary")
 def dashboard_summary():
-    patients = get_patients()
+    patients = read_patients()
+    sessions = read_sessions()
+    events = read_events()
 
-    keys = list_keys(prefix="events/")
-    all_events = []
-    for k in keys:
-        data = get_json(k)
-        if data:
-            all_events.append(data)
+    checkins = [e for e in events if e["type"] == "M1_MEASURED"]
+    latest_checkin = None
 
-    sessions = [e for e in all_events if e.get("type") == "SESSION_CREATED"]
-    checkins = [e for e in all_events if e.get("type") == "M1_MEASURED"]
+    if checkins:
+        latest_raw = sorted(checkins, key=lambda x: x.get("ts", ""))[-1]
+        try:
+            payload = json.loads(latest_raw.get("payload_json", "") or "{}")
+        except json.JSONDecodeError:
+            payload = {}
 
-    latest_checkin = checkins[-1] if checkins else None
+        latest_checkin = {
+            "event_id": latest_raw["event_id"],
+            "ts": latest_raw["ts"],
+            "session_id": latest_raw["session_id"],
+            "patient_id": latest_raw["patient_id"],
+            "type": latest_raw["type"],
+            "actor": latest_raw["actor"],
+            "protocol_version": latest_raw["protocol_version"],
+            "schema_name": latest_raw["schema_name"],
+            "schema_version": latest_raw["schema_version"],
+            "payload": payload,
+        }
 
     return {
         "patients_count": len(patients),
@@ -211,6 +247,10 @@ def dashboard_summary():
     }
 
 
-@app.get("/debug/keys")
-def debug_keys():
-    return {"keys": list_keys(prefix="")}
+@app.get("/debug/storage")
+def debug_storage():
+    return {
+        "patients": len(read_patients()),
+        "sessions": len(read_sessions()),
+        "events": len(read_events()),
+    }
