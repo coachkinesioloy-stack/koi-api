@@ -6,7 +6,9 @@ const state = {
   selectedSessionId: "",
   patients: [],
   sessionsByPatient: {},
+  plansByPatient: {},
   summary: null,
+  livePrepared: false,
 };
 
 const views = {
@@ -84,6 +86,14 @@ async function loadSessionsForPatient(patientId) {
   return state.sessionsByPatient[patientId];
 }
 
+async function loadPlansForPatient(patientId) {
+  if (!patientId) return [];
+  if (!state.plansByPatient[patientId]) {
+    state.plansByPatient[patientId] = await getJson(`${api()}/patient/${patientId}/plans`);
+  }
+  return state.plansByPatient[patientId];
+}
+
 function patientNameById(patientId) {
   const p = state.patients.find((x) => x.patient_id === patientId);
   return p ? p.name : patientId;
@@ -109,12 +119,15 @@ function refreshActivePatientHeader() {
 function setActivePatient(patientId) {
   state.selectedPatientId = patientId;
   state.selectedSessionId = "";
+  state.livePrepared = false;
   refreshActivePatientHeader();
 
   if (state.currentView === "dashboard") renderDashboard();
   if (state.currentView === "patients") renderPatients();
   if (state.currentView === "sessions") renderSessions();
   if (state.currentView === "checkin") renderCheckin();
+  if (state.currentView === "planning") renderPlanning();
+  if (state.currentView === "live") renderLive();
 }
 
 function setView(view) {
@@ -178,7 +191,7 @@ function setView(view) {
 
   if (view === "live") {
     pageTitle.textContent = "Sesión en vivo";
-    pageSubtitle.textContent = "Coaching y análisis en tiempo real.";
+    pageSubtitle.textContent = "Preparación operativa de la sesión.";
     renderLive();
   }
 
@@ -218,9 +231,9 @@ async function renderDashboard() {
       </section>
 
       <section class="card metric-card reveal">
-        <h3>Check-ins M1</h3>
-        <div class="metric-value">${summary.checkins_count}</div>
-        <div class="metric-sub">Evaluaciones biométricas realizadas</div>
+        <h3>Planes totales</h3>
+        <div class="metric-value">${summary.plans_count || 0}</div>
+        <div class="metric-sub">Planes terapéuticos creados</div>
       </section>
 
       <section class="card wide-card reveal">
@@ -239,9 +252,7 @@ async function renderDashboard() {
                 </div>
               </div>
             `
-            : `
-              <div class="empty">Todavía no seleccionaste un paciente.</div>
-            `
+            : `<div class="empty">Todavía no seleccionaste un paciente.</div>`
         }
       </section>
 
@@ -314,6 +325,7 @@ async function renderPatients() {
     });
 
     state.sessionsByPatient = {};
+    state.plansByPatient = {};
     await loadPatients();
     setActivePatient(data.patient_id);
 
@@ -341,7 +353,7 @@ function renderSessionList(sessions) {
   return sessions
     .map(
       (s) => `
-      <div class="simple-item">
+      <div class="simple-item session-card-item ${state.selectedSessionId === s.session_id ? "selected-card" : ""}" data-session-id="${s.session_id}">
         <strong>${s.session_id}</strong><br>
         <span class="muted">${s.ts}</span>
       </div>
@@ -389,6 +401,14 @@ async function renderSessions() {
 
     const sessions = await loadSessionsForPatient(state.selectedPatientId);
     sessionsList.innerHTML = renderSessionList(sessions);
+
+    document.querySelectorAll(".session-card-item").forEach((card) => {
+      card.onclick = () => {
+        state.selectedSessionId = card.dataset.sessionId;
+        state.livePrepared = false;
+        renderSessions();
+      };
+    });
   }
 
   if (state.selectedPatientId) {
@@ -407,6 +427,7 @@ async function renderSessions() {
       });
 
       state.selectedSessionId = data.session_id;
+      state.livePrepared = false;
       state.sessionsByPatient[state.selectedPatientId] = undefined;
 
       document.getElementById("session-feedback").innerHTML = `
@@ -503,6 +524,7 @@ async function renderCheckin() {
   async function refreshEventsList() {
     const sessionId = sessionSelect.value;
     state.selectedSessionId = sessionId;
+    state.livePrepared = false;
 
     if (!sessionId) {
       eventsList.innerHTML = `<div class="empty">Seleccioná una sesión.</div>`;
@@ -564,13 +586,113 @@ async function renderCheckin() {
   activateReveal(views.checkin);
 }
 
-function renderPlanning() {
+function renderPlanList(plans) {
+  if (!plans.length) return `<div class="empty">No hay planes cargados.</div>`;
+
+  return plans
+    .map(
+      (p) => `
+      <div class="simple-item">
+        <strong>${p.title}</strong><br>
+        <span class="muted">${p.category}</span><br>
+        <span class="muted">${p.frequency || "Sin frecuencia"}</span>
+        ${p.description ? `<div class="muted" style="margin-top:8px;">${p.description}</div>` : ""}
+      </div>
+    `
+    )
+    .join("");
+}
+
+async function renderPlanning() {
+  await loadPatients();
+  refreshActivePatientHeader();
+
+  const activePatient = getActivePatient();
+  const plans = state.selectedPatientId ? await loadPlansForPatient(state.selectedPatientId) : [];
+
   views.planning.innerHTML = `
-    <section class="view-panel reveal">
-      <h3>Planificación</h3>
-      <div class="empty">Acá van rutinas, ejercicios, progresiones y asignaciones por paciente.</div>
-    </section>
+    <div class="simple-grid">
+      <section class="view-panel reveal">
+        <h3>Nuevo plan terapéutico</h3>
+
+        <label>Paciente activo</label>
+        <input value="${activePatient ? activePatient.name : "Sin paciente activo"}" disabled />
+
+        <label style="margin-top:12px;">Título</label>
+        <input id="plan-title" placeholder="Ej: Regulación cervical inicial" />
+
+        <label style="margin-top:12px;">Categoría</label>
+        <select id="plan-category">
+          <option value="">Seleccionar categoría</option>
+          <option value="Respiración">Respiración</option>
+          <option value="Movilidad">Movilidad</option>
+          <option value="Fuerza">Fuerza</option>
+          <option value="Mindfulness">Mindfulness</option>
+          <option value="Miofascial">Miofascial</option>
+        </select>
+
+        <label style="margin-top:12px;">Frecuencia</label>
+        <input id="plan-frequency" placeholder="Ej: 3 veces por semana" />
+
+        <label style="margin-top:12px;">Descripción</label>
+        <textarea id="plan-description" rows="4" placeholder="Objetivo clínico, consignas, progresión..."></textarea>
+
+        <div class="form-actions">
+          <button class="small-btn" id="save-plan-btn" ${activePatient ? "" : "disabled"}>Guardar plan</button>
+        </div>
+
+        <div class="result-box">
+          <div id="plan-feedback" class="empty">${activePatient ? "Listo para crear plan." : "Primero seleccioná un paciente."}</div>
+        </div>
+      </section>
+
+      <section class="view-panel reveal">
+        <h3>Planes del paciente</h3>
+        <div id="plans-list" class="simple-list">
+          ${activePatient ? renderPlanList(plans) : `<div class="empty">Seleccioná un paciente.</div>`}
+        </div>
+      </section>
+    </div>
   `;
+
+  const saveBtn = document.getElementById("save-plan-btn");
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      const title = document.getElementById("plan-title").value.trim();
+      const category = document.getElementById("plan-category").value.trim();
+      const frequency = document.getElementById("plan-frequency").value.trim();
+      const description = document.getElementById("plan-description").value.trim();
+
+      if (!state.selectedPatientId || !title || !category) return;
+
+      const params = new URLSearchParams({
+        patient_id: state.selectedPatientId,
+        title,
+        category,
+        frequency,
+        description,
+      });
+
+      const data = await getJson(`${api()}/plan?${params.toString()}`, {
+        method: "POST",
+      });
+
+      state.plansByPatient[state.selectedPatientId] = undefined;
+      const refreshedPlans = await loadPlansForPatient(state.selectedPatientId);
+
+      document.getElementById("plans-list").innerHTML = renderPlanList(refreshedPlans);
+      document.getElementById("plan-feedback").innerHTML = `
+        <div class="simple-item selected-card">
+          <strong>Plan creado</strong><br>
+          <span class="muted">${data.title}</span><br>
+          <span class="muted">${data.category}</span>
+        </div>
+      `;
+
+      await renderDashboard();
+    };
+  }
+
   activateReveal(views.planning);
 }
 
@@ -604,13 +726,97 @@ function renderTips() {
   activateReveal(views.tips);
 }
 
-function renderLive() {
+async function renderLive() {
+  await loadPatients();
+  refreshActivePatientHeader();
+
+  const activePatient = getActivePatient();
+  const sessions = state.selectedPatientId ? await loadSessionsForPatient(state.selectedPatientId) : [];
+  const selectedSession = sessions.find((s) => s.session_id === state.selectedSessionId);
+
   views.live.innerHTML = `
-    <section class="view-panel reveal">
-      <h3>Sesión en vivo</h3>
-      <div class="empty">Acá va la experiencia de videollamada, análisis y coaching en tiempo real.</div>
-    </section>
+    <div class="simple-grid">
+      <section class="view-panel reveal">
+        <h3>Preparar sesión de video</h3>
+
+        <label>Paciente activo</label>
+        <input value="${activePatient ? activePatient.name : "Sin paciente activo"}" disabled />
+
+        <label style="margin-top:12px;">Sesión</label>
+        <select id="live-session-select">
+          <option value="">Seleccionar sesión</option>
+          ${sessions.map((s) => `<option value="${s.session_id}" ${state.selectedSessionId === s.session_id ? "selected" : ""}>${s.session_id}</option>`).join("")}
+        </select>
+
+        <label style="margin-top:12px;">Notas previas</label>
+        <textarea id="live-notes" rows="4" placeholder="Objetivo clínico, foco de observación, consignas..."></textarea>
+
+        <div class="form-actions">
+          <button class="small-btn" id="live-prepare-btn" ${activePatient && state.selectedSessionId ? "" : "disabled"}>Preparar sesión</button>
+        </div>
+
+        <div class="result-box">
+          <div id="live-feedback" class="empty">
+            ${activePatient ? "Seleccioná una sesión y prepará el encuentro." : "Primero seleccioná un paciente."}
+          </div>
+        </div>
+      </section>
+
+      <section class="view-panel reveal">
+        <h3>Vista previa operativa</h3>
+
+        <div class="simple-item" style="min-height:320px; display:flex; flex-direction:column; gap:14px;">
+          <div style="padding:14px; border-radius:16px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); min-height:150px; display:flex; align-items:center; justify-content:center;">
+            <div style="text-align:center;">
+              <strong>Marco de videollamada</strong><br>
+              <span class="muted">${selectedSession ? selectedSession.session_id : "Sin sesión seleccionada"}</span>
+            </div>
+          </div>
+
+          <div class="simple-item" style="background:rgba(255,255,255,.04);">
+            <strong>Checklist</strong><br>
+            <span class="muted">Paciente activo: ${activePatient ? activePatient.name : "No"}</span><br>
+            <span class="muted">Sesión seleccionada: ${selectedSession ? "Sí" : "No"}</span><br>
+            <span class="muted">Módulo listo: Video / coaching / análisis</span>
+          </div>
+
+          <div class="simple-item ${state.livePrepared ? "selected-card" : ""}" style="background:rgba(255,255,255,.04);">
+            <strong>Estado</strong><br>
+            <span class="${state.livePrepared ? "good" : "muted"}">${state.livePrepared ? "Sesión preparada" : "Pendiente de preparación"}</span>
+          </div>
+        </div>
+      </section>
+    </div>
   `;
+
+  const sessionSelect = document.getElementById("live-session-select");
+  if (sessionSelect) {
+    sessionSelect.onchange = () => {
+      state.selectedSessionId = sessionSelect.value;
+      state.livePrepared = false;
+      renderLive();
+    };
+  }
+
+  const prepareBtn = document.getElementById("live-prepare-btn");
+  if (prepareBtn) {
+    prepareBtn.onclick = () => {
+      state.livePrepared = true;
+      const notes = document.getElementById("live-notes").value.trim();
+
+      document.getElementById("live-feedback").innerHTML = `
+        <div class="simple-item selected-card">
+          <strong>Sesión de video preparada</strong><br>
+          <span class="muted">Paciente: ${activePatient ? activePatient.name : "Sin paciente"}</span><br>
+          <span class="muted">Sesión: ${state.selectedSessionId || "Sin sesión"}</span>
+          ${notes ? `<br><span class="muted">Notas: ${notes}</span>` : ""}
+        </div>
+      `;
+
+      renderLive();
+    };
+  }
+
   activateReveal(views.live);
 }
 
