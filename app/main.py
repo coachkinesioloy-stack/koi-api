@@ -21,6 +21,8 @@ from .storage import (
     create_session_row,
     read_events,
     create_event_row,
+    read_plans,
+    create_plan_row,
 )
 
 ensure_files()
@@ -171,7 +173,7 @@ def create_event(req: CreateEventRequest):
         actor=req.actor,
         protocol_version=protocol_version(),
         schema_name=req.schema_name,
-        schema_version=req.schema_version,
+        schema_version=req.schema_version(),
         payload=payload,
     )
 
@@ -210,39 +212,88 @@ def get_session_events(session_id: str):
     return records
 
 
+@app.post("/plan")
+def create_plan(
+    patient_id: str,
+    title: str,
+    category: str,
+    description: str = "",
+    frequency: str = "",
+):
+    patient_id = (patient_id or "").strip()
+    title = (title or "").strip()
+    category = (category or "").strip()
+    description = (description or "").strip()
+    frequency = (frequency or "").strip()
+
+    if not patient_id:
+        raise HTTPException(status_code=400, detail="patient_id is required")
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+    if not category:
+        raise HTTPException(status_code=400, detail="category is required")
+
+    patients = read_patients()
+    exists = any(p["patient_id"] == patient_id for p in patients)
+    if not exists:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    row = {
+        "plan_id": str(uuid.uuid4()),
+        "patient_id": patient_id,
+        "title": title,
+        "category": category,
+        "description": description,
+        "frequency": frequency,
+        "created_at": now_iso(),
+    }
+    create_plan_row(row)
+    return row
+
+
+@app.get("/patient/{patient_id}/plans")
+def get_patient_plans(patient_id: str):
+    plans = read_plans()
+    filtered = [p for p in plans if p["patient_id"] == patient_id]
+    filtered.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return filtered
+
+
 @app.get("/dashboard/summary")
 def dashboard_summary():
     patients = read_patients()
     sessions = read_sessions()
     events = read_events()
+    plans = read_plans()
 
     checkins = [e for e in events if e["type"] == "M1_MEASURED"]
     latest_checkin = None
 
     if checkins:
-        latest_raw = sorted(checkins, key=lambda x: x.get("ts", ""))[-1]
-        try:
-            payload = json.loads(latest_raw.get("payload_json", "") or "{}")
-        except json.JSONDecodeError:
-            payload = {}
+      latest_raw = sorted(checkins, key=lambda x: x.get("ts", ""))[-1]
+      try:
+          payload = json.loads(latest_raw.get("payload_json", "") or "{}")
+      except json.JSONDecodeError:
+          payload = {}
 
-        latest_checkin = {
-            "event_id": latest_raw["event_id"],
-            "ts": latest_raw["ts"],
-            "session_id": latest_raw["session_id"],
-            "patient_id": latest_raw["patient_id"],
-            "type": latest_raw["type"],
-            "actor": latest_raw["actor"],
-            "protocol_version": latest_raw["protocol_version"],
-            "schema_name": latest_raw["schema_name"],
-            "schema_version": latest_raw["schema_version"],
-            "payload": payload,
-        }
+      latest_checkin = {
+          "event_id": latest_raw["event_id"],
+          "ts": latest_raw["ts"],
+          "session_id": latest_raw["session_id"],
+          "patient_id": latest_raw["patient_id"],
+          "type": latest_raw["type"],
+          "actor": latest_raw["actor"],
+          "protocol_version": latest_raw["protocol_version"],
+          "schema_name": latest_raw["schema_name"],
+          "schema_version": latest_raw["schema_version"],
+          "payload": payload,
+      }
 
     return {
         "patients_count": len(patients),
         "sessions_count": len(sessions),
         "checkins_count": len(checkins),
+        "plans_count": len(plans),
         "latest_checkin": latest_checkin,
     }
 
@@ -253,4 +304,5 @@ def debug_storage():
         "patients": len(read_patients()),
         "sessions": len(read_sessions()),
         "events": len(read_events()),
+        "plans": len(read_plans()),
     }
