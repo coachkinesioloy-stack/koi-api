@@ -7,6 +7,7 @@ BASE_DIR = "data"
 PATIENTS_FILE = os.path.join(BASE_DIR, "patients.csv")
 SESSIONS_FILE = os.path.join(BASE_DIR, "sessions.csv")
 EVENTS_FILE = os.path.join(BASE_DIR, "events.csv")
+PLANS_FILE = os.path.join(BASE_DIR, "plans.csv")
 
 
 def ensure_files() -> None:
@@ -43,6 +44,22 @@ def ensure_files() -> None:
                     "schema_name",
                     "schema_version",
                     "payload_json",
+                ],
+            )
+            writer.writeheader()
+
+    if not os.path.exists(PLANS_FILE):
+        with open(PLANS_FILE, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "plan_id",
+                    "patient_id",
+                    "title",
+                    "category",
+                    "description",
+                    "frequency",
+                    "created_at",
                 ],
             )
             writer.writeheader()
@@ -105,5 +122,25 @@ def create_event_row(row: Dict[str, str]) -> None:
             "schema_name",
             "schema_version",
             "payload_json",
+        ],
+    )
+
+
+def read_plans() -> List[Dict[str, str]]:
+    return _read_csv(PLANS_FILE)
+
+
+def create_plan_row(row: Dict[str, str]) -> None:
+    _append_csv(
+        PLANS_FILE,
+        row,
+        [
+            "plan_id",
+            "patient_id",
+            "title",
+            "category",
+            "description",
+            "frequency",
+            "created_at",
         ],
     )
